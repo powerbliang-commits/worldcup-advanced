@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 FIFA World Cup — 小組賽事儀表板</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#0f172a;color:#f1f5f9;font-size:15px;height:100vh;overflow:hidden;display:flex}
+
+/* ═══ LEFT COL ═══ */
+.left-col{width:410px;flex-shrink:0;display:flex;flex-direction:column;
+  border-right:1px solid #1e293b;height:100vh;overflow:hidden}
+.map-block{flex:0 0 38%;position:relative;overflow:hidden}
+#map{width:100%;height:100%}
+
+/* Leaflet resets */
+.leaflet-container{background:#0a1122!important}
+.leaflet-control-zoom{bottom:8px!important;right:8px!important;left:auto!important;top:auto!important}
+.leaflet-control-zoom a{background:#1e293b!important;color:#94a3b8!important;
+  border:1px solid #334155!important;width:26px!important;height:26px!important;
+  line-height:26px!important;font-size:15px!important;border-radius:4px!important}
+.leaflet-control-zoom a:hover{background:#334155!important;color:#e2e8f0!important}
+.leaflet-control-attribution{display:none!important}
+/* suppress default tooltip chrome */
+.leaflet-tooltip{background:transparent!important;border:none!important;
+  box-shadow:none!important;padding:0!important;transition:none!important}
+.leaflet-tooltip::before{display:none!important}
+
+/* ── Venue panel ── */
+.venue-block{flex:1;min-height:0;overflow-y:auto;background:#f8faff;border-top:1px solid #e2e8f0}
+.venue-block::-webkit-scrollbar{width:4px}
+.venue-block::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+.venue-placeholder{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;padding:20px;text-align:center}
+.venue-placeholder-icon{font-size:28px;margin-bottom:8px;opacity:.35}
+.venue-placeholder-txt{font-size:11.5px;line-height:1.7;color:#94a3b8}
+.venue-hero{width:100%;height:120px;object-fit:cover;display:block;background:#e2e8f0}
+.venue-hero-wrap{position:relative}
+.venue-country-badge{position:absolute;top:10px;right:10px;padding:3px 10px;
+  border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;
+  box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.venue-body{padding:13px 15px 18px;background:#f8faff}
+.venue-name{font-size:15px;font-weight:800;color:#0f172a;margin-bottom:3px;line-height:1.3}
+.venue-city{font-size:11px;color:#1e293b;font-weight:700;margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.06em}
+.venue-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.vs-item{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:9px 6px;
+  text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.vs-val{font-size:13px;font-weight:800;color:#0f172a;line-height:1.2}
+.vs-lbl{font-size:10.5px;color:#334155;margin-top:3px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.03em}
+.vsec{font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:6px;margin-top:13px;
+  display:flex;align-items:center;gap:5px}
+.vsec::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.vdesc{font-size:12px;color:#1e293b;line-height:1.75}
+.vtags{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.vtag{font-size:11px;padding:4px 11px;border-radius:99px;font-weight:700;
+  background:#f1f5f9;color:#1e293b;border:1px solid #cbd5e1}
+
+/* ═══ RIGHT COL ═══ */
+.right-col{flex:1;min-width:0;display:flex;flex-direction:column;
+  background:#F8FAFF;color:#1a1a2e;height:100vh;overflow:hidden}
+.hdr{background:linear-gradient(135deg,#1e3a5f,#1e40af);padding:12px 18px;flex-shrink:0}
+.hdr-title{font-size:16px;font-weight:800;color:#fff;margin-bottom:2px}
+.hdr-sub{font-size:11px;color:#93c5fd;line-height:1.4}
+.stats{display:flex;gap:0;padding:0;flex-shrink:0;background:#fff;
+  border-bottom:1px solid #E2E8F0}
+.stat{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:7px 8px;border-top:4px solid;border-radius:0}
+.stat:nth-child(1){border-color:#3B82F6;background:#EFF6FF}
+.stat:nth-child(2){border-color:#10B981;background:#ECFDF5}
+.stat:nth-child(3){border-color:#F59E0B;background:#FFFBEB}
+.stat:nth-child(4){border-color:#EC4899;background:#FDF2F8}
+.stat-val{font-size:17px;font-weight:800;color:#0f172a}
+.stat-lbl{font-size:12px;color:#334155;font-weight:600}
+.controls{padding:8px 13px;flex-shrink:0;background:#fff;border-bottom:1px solid #E2E8F0}
+.group-btns{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.gbtn{font-size:12px;padding:4px 12px;border:2px solid transparent;border-radius:99px;
+  cursor:pointer;font-weight:700;font-family:inherit;transition:all .15s}
+.gbtn.all-btn{background:#F1F5F9;color:#334155;border-color:#CBD5E1}
+.gbtn.all-btn.active,.gbtn.all-btn:hover{background:#0f172a;color:#fff;border-color:#0f172a}
+.filter-row{display:flex;gap:5px;align-items:center}
+.filter-row input,.filter-row select{font-size:13px;padding:6px 10px;
+  border:2px solid #CBD5E1;border-radius:8px;background:#F8FAFF;color:#1a1a2e;
+  height:36px;font-family:inherit;outline:none;flex:1;transition:border-color .15s}
+.filter-row input:focus,.filter-row select:focus{border-color:#3B82F6}
+.clear-btn{font-size:12px;padding:6px 12px;border:2px solid #CBD5E1;border-radius:8px;
+  background:#fff;color:#334155;cursor:pointer;height:36px;font-family:inherit;
+  font-weight:700;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.clear-btn:hover{border-color:#F43F5E;color:#F43F5E;background:#FFF5F5}
+.match-count{font-size:12px;color:#334155;margin-top:5px;font-weight:700}
+.matches-wrap{flex:1;overflow-y:auto;padding:8px 13px 12px;background:#F8FAFF}
+.matches-wrap::-webkit-scrollbar{width:4px}
+.matches-wrap::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.day-hdr{font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;
+  letter-spacing:.07em;padding:9px 0 5px;border-bottom:1.5px solid #E2E8F0;
+  margin-top:9px;position:sticky;top:0;background:#F8FAFF;z-index:2}
+.day-hdr:first-child{margin-top:0}
+.card{border-radius:10px;padding:9px 12px;
+  border:2px solid transparent;border-left-width:5px;
+  margin-bottom:5px;cursor:pointer;background:#fff;
+  transition:transform .12s,box-shadow .15s}
+.card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.09)}
+.card-main{display:grid;grid-template-columns:36px 138px 1fr auto;align-items:start;gap:9px}
+/* ── Card text ── */
+.grp-word{font-size:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.grp-letter{font-size:19px;font-weight:900;line-height:1.1}
+.team-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.team-row:last-of-type{margin-bottom:0}
+.flag-img{width:28px;height:19px;object-fit:cover;border-radius:2px;
+  border:1px solid rgba(0,0,0,.15);flex-shrink:0}
+.team-names{display:flex;flex-direction:column}
+.team-zh{font-size:12.5px;font-weight:800;color:#0f172a;line-height:1.25}
+.team-en{font-size:9.5px;font-weight:600;color:#475569;line-height:1.25}
+.vs-sep{font-size:11px;color:#94a3b8;font-weight:700;padding:2px 0 2px 36px}
+.venue-row{display:flex;align-items:center;gap:4px;margin-top:5px}
+.venue-txt{font-size:9px;color:#334155;line-height:1.4;font-weight:500;white-space:normal;word-break:break-word}
+.time-col{text-align:right;min-width:68px;flex-shrink:0}
+.kick-time{font-size:17px;font-weight:900;white-space:nowrap}
+.kick-date{font-size:11.5px;color:#334155;margin-top:3px;white-space:nowrap;
+  line-height:1.4;font-weight:600}
+/* ── Guide inline (3rd column) ── */
+.guide-inline-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:5px;line-height:1.4}
+.guide-inline-body{font-size:12px;color:#334155;line-height:1.68;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.guide-inline-key{margin-top:6px;font-size:11.5px;color:#1e293b;line-height:1.6;
+  padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.05);border-left:3px solid}
+.guide-inline-key-lbl{font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.05em;color:#475569;margin-bottom:2px}
+.grp-badge{width:32px;height:32px;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;flex-shrink:0}
+.grp-word{font-size:6px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.grp-letter{font-size:16px;font-weight:900;line-height:1.1}
+.team-row{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.team-row:last-of-type{margin-bottom:0}
+.flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;
+  border:1px solid rgba(0,0,0,.1);flex-shrink:0}
+/* ══ Tab navigation ══ */
+.tab-bar{display:flex;background:#fff;border-bottom:2px solid #E2E8F0;flex-shrink:0}
+.tab-btn{flex:1;padding:10px 0;font-size:13px;font-weight:700;font-family:inherit;
+  border:none;background:none;cursor:pointer;color:#64748b;
+  border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab-btn.active{color:#1e40af;border-bottom-color:#1e40af;background:#f0f6ff}
+.tab-btn:hover:not(.active){color:#334155;background:#f8faff}
+
+/* ══ Knockout bracket ══ */
+.ko-wrap{flex:1;overflow-y:auto;background:#F8FAFF;display:flex;flex-direction:column}
+.ko-wrap::-webkit-scrollbar{width:4px}
+.ko-wrap::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.ko-wrap{flex:1;min-height:0;display:flex;flex-direction:column;background:#F8FAFF}
+.ko-wrap::-webkit-scrollbar{height:5px}
+/* Full horizontal bracket scroll */
+.ko-panel{flex:1;overflow-x:auto;overflow-y:auto;padding:14px 20px 16px;
+  display:flex;align-items:flex-start;gap:0;min-height:0;background:#F8FAFF}
+.ko-panel::-webkit-scrollbar{height:5px}
+.ko-panel::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+/* Bracket column */
+.bkt-col{display:flex;flex-direction:column;flex-shrink:0;width:136px}
+.bkt-col-label{font-size:9.5px;font-weight:800;color:#fff;text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:8px;padding:3px 7px;border-radius:4px;
+  background:#1e40af;text-align:center}
+.bkt-col-label.next{background:#64748b}
+.bkt-col-label.qf{background:#7c3aed}
+.bkt-col-label.sf{background:#b45309}
+.bkt-col-label.final{background:#d97706}
+/* Card */
+.bkt-card{background:#fff;border-radius:8px;border:1.5px solid #CBD5E1;
+  width:136px;cursor:pointer;flex-shrink:0;
+  transition:border-color .15s,box-shadow .15s}
+.bkt-card:hover{border-color:#1e40af;box-shadow:0 2px 10px rgba(30,64,175,.15)}
+.bkt-card.final-card{border-color:#F59E0B;border-width:2px;background:#FFFBEB}
+.bkt-card.third-card{border-color:#10B981;border-width:2px;background:#F0FDF4}
+.bkt-card-hdr{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 8px 3px;background:#EFF6FF;border-radius:6px 6px 0 0;
+  border-bottom:1px solid #BFDBFE}
+.bkt-card.final-card .bkt-card-hdr{background:#FEF3C7;border-bottom-color:#FDE68A}
+.bkt-card.third-card .bkt-card-hdr{background:#D1FAE5;border-bottom-color:#6EE7B7}
+.bkt-mid{font-size:8px;color:#1e40af;font-weight:800;letter-spacing:.03em}
+.bkt-card.final-card .bkt-mid{color:#92400E}
+.bkt-card.third-card .bkt-mid{color:#065F46}
+.bkt-time{font-size:8.5px;font-weight:800;color:#1e3a8a;white-space:nowrap}
+.bkt-team{display:flex;align-items:center;gap:5px;padding:4px 8px}
+.bkt-team+.bkt-team{border-top:1px solid #F1F5F9}
+.bkt-flag{width:18px;height:12px;object-fit:cover;border-radius:2px;
+  border:1px solid rgba(0,0,0,.1);flex-shrink:0}
+.bkt-name{font-size:11.5px;font-weight:700;color:#1e293b;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:88px}
+.bkt-tbd{font-size:10px;color:#64748b;font-style:italic;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:95px}
+.bkt-venue{padding:2px 8px 5px;font-size:8px;color:#64748b;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Connector column */
+.bkt-conn{flex-shrink:0;position:relative;align-self:stretch;width:32px}
+.ko-note{
+.empty-state{text-align:center;padding:28px 0;color:#334155;font-size:14px}
+
+/* ══ Pin pulse animation ══ */
+@keyframes pinPulse{
+  0%  {opacity:1;   transform:scale(1)}
+  50% {opacity:0.6; transform:scale(1.35)}
+  100%{opacity:1;   transform:scale(1)}
+}
+</style>
+</head>
+<body>
+
+
+
+<!-- LEFT -->
+<div class="left-col">
+  <div class="map-block"><div id="map"></div></div>
+  <div class="venue-block" id="venueBlock">
+    <div class="venue-placeholder" id="vp">
+      <div class="venue-placeholder-icon">🏟️</div>
+      <div class="venue-placeholder-txt">移到右側賽事卡片<br>或點擊地圖標記<br>查看場館詳細資訊</div>
+    </div>
+    <div id="vc" style="display:none"></div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right-col">
+  <div class="hdr">
+    <div class="hdr-title">⚽ 2026 FIFA World Cup — 賽事儀表板</div>
+    <div class="hdr-sub">台灣時間（UTC+8）· 小組賽 6/11–6/28 · 淘汰賽 6/29–7/19 · 💡 移到賽事卡片 → 左側地圖＆場館資訊即時更新</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">72</div><div class="stat-lbl">🏆 小組賽事</div></div>
+    <div class="stat"><div class="stat-val">48</div><div class="stat-lbl">🌍 參賽隊伍</div></div>
+    <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">📋 分組數量</div></div>
+    <div class="stat"><div class="stat-val">16</div><div class="stat-lbl">🏟️ 比賽場館</div></div>
+  </div>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabGroup" onclick="switchTab('group')">📋 小組賽</button>
+    <button class="tab-btn" id="tabKO" onclick="switchTab('ko')">⚔️ 淘汰賽</button>
+  </div>
+  <!-- Group stage panel -->
+  <div id="panelGroup" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+    <div class="controls">
+      <div class="group-btns" id="groupBtns"></div>
+      <div class="filter-row">
+        <input type="text" id="teamSearch" placeholder="🔍 搜尋球隊（中文或英文）">
+        <select id="venueFilter"><option value="">🏟️ 全部場館</option></select>
+        <select id="dateFilter"><option value="">📅 全部日期</option></select>
+        <button class="clear-btn" id="clearBtn">✕</button>
+      </div>
+      <div class="match-count" id="matchCount"></div>
+    </div>
+    <div class="matches-wrap" id="matchList"></div>
+  </div>
+  <!-- Knockout panel -->
+  <div id="panelKO" style="display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column">
+    <div class="ko-wrap" id="koWrap">
+      <div class="ko-panel" id="koContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GT={
+  A:{bg:'#FFF1F2',bdr:'#F43F5E',bbg:'#F43F5E',btxt:'#fff'},
+  B:{bg:'#EFF6FF',bdr:'#2563EB',bbg:'#2563EB',btxt:'#fff'},
+  C:{bg:'#F0FDF4',bdr:'#16A34A',bbg:'#16A34A',btxt:'#fff'},
+  D:{bg:'#FFF7ED',bdr:'#EA580C',bbg:'#EA580C',btxt:'#fff'},
+  E:{bg:'#FAF5FF',bdr:'#7C3AED',bbg:'#7C3AED',btxt:'#fff'},
+  F:{bg:'#ECFEFF',bdr:'#0891B2',bbg:'#0891B2',btxt:'#fff'},
+  G:{bg:'#FEFCE8',bdr:'#CA8A04',bbg:'#CA8A04',btxt:'#fff'},
+  H:{bg:'#FFF0F9',bdr:'#C026D3',bbg:'#C026D3',btxt:'#fff'},
+  I:{bg:'#F0F9FF',bdr:'#0284C7',bbg:'#0284C7',btxt:'#fff'},
+  J:{bg:'#ECFDF5',bdr:'#059669',bbg:'#059669',btxt:'#fff'},
+  K:{bg:'#FFF5F0',bdr:'#DC2626',bbg:'#DC2626',btxt:'#fff'},
+  L:{bg:'#F5F3FF',bdr:'#4F46E5',bbg:'#4F46E5',btxt:'#fff'},
+};
+
+// ── Label direction per venue (to avoid edges and overlapping) ────────────────
+// 'n'=above, 's'=below, 'e'=right, 'w'=left
+const VENUES={
+  'BC Place, Vancouver':
+    {lat:49.2767,lng:-123.1112,c:'ca',city:'Vancouver',ld:'s',
+     photo:'https://stadiumdb.com/pictures/stadiums/can/bc_place/bc_place21.jpg',
+     cap:'54,000',opened:'1983（2011年翻新）',surface:'進口天然草皮',team:'Vancouver Whitecaps（MLS）、BC Lions（CFL）',wc2026:'小組賽 5 場＋32強＋16強，共 7 場',
+     desc:'BC Place 擁有本屆世界盃最獨特的建築特色之一：全球最大的纜索支撐可伸縮屋頂，2010年溫哥華冬奧後翻新加裝，20分鐘即可完成開合。受限於天然草皮光線均勻生長需求，本屆世界盃期間屋頂預計維持關閉。2015年女子世界盃決賽在此舉行，Carli Lloyd 帽子戲法，美國5:2大勝日本奪冠，創下世界盃決賽進球紀錄。2010冬奧開幕式為史上首個室內舉辦的奧運開閉幕典禮，Wayne Gretzky 為聖火傳遞者。',
+     tags:['MLS','CFL','可伸縮屋頂','2010冬奧','女子世界盃決賽','7場世界盃']},
+  'BMO Field, Toronto':
+    {lat:43.6333,lng:-79.4187,c:'ca',city:'Toronto',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/can/bmo_field/bmo_field46.jpg',
+     cap:'45,000',opened:'2007（2016年翻新擴建）',surface:'天然草皮',team:'Toronto FC（MLS）、Toronto Argonauts（CFL）',wc2026:'小組賽 5 場＋32強，共 6 場',
+     desc:'原為多倫多 MLS 球隊打造的約2萬席小場館，今夏南端新建臨時結構增設逾17,000臨時座位，達到世界盃容量4萬5千席。2016年加裝頂篷後宛如歐式球場風格，並新增LED大螢幕、球員休息室及音響系統。Toronto FC 曾三度舉辦 MLS Cup，2017年主場2:0擊敗 Seattle Sounders 奪冠。2016年 Grey Cup，Ottawa Redblacks 以39-33擊敗 Calgary Stampeders，儘管例行賽勝率不足5成仍奪冠。',
+     tags:['MLS','CFL','擴建至45,000','歐式風格','MLS Cup×3','6場世界盃']},
+  'Lumen Field, Seattle':
+    {lat:47.5952,lng:-122.3316,c:'us',city:'Seattle',ld:'e',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/seahawks_stadium/seahawks_stadium18.jpg',
+     cap:'69,000',opened:'2002',surface:'天然草皮',team:'Seattle Sounders（MLS）、Seattle Reign（NWSL）、Seattle Seahawks（NFL）',wc2026:'小組賽 4 場＋32強＋16強，共 6 場',
+     desc:'Seattle Stadium 是少數位於美國城市核心的世界盃場館，建於昔日 Kingdome 舊址。屋頂覆蓋大部分側邊座席，北端刻意保留開放空間以保留城市天際線景觀。場館裝設多件公共藝術，最矚目的是原住民藝術家 Bob Houzous 創作的「Earth Dialogue」。曾多次記錄到球迷震動強度達地震等級：2023年泰勒絲演唱會達2.3級，Sounders 球迷慶祝進球時同樣引發可測震動。2022年 Sounders 在此以 MLS 球隊身份首奪美洲冠軍盃，68,741 名球迷見證歷史。',
+     tags:['MLS','NFL','NWSL','都市核心','地震等級球迷','6場世界盃']},
+  'SoFi Stadium, Los Angeles':
+    {lat:33.9535,lng:-118.3391,c:'us',city:'Los Angeles',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/sofi_stadium/sofi_stadium10.jpg',
+     cap:'70,000',opened:'2020',surface:'天然草皮（世界盃期間）',team:'LA Rams（NFL）、LA Chargers（NFL）',wc2026:'小組賽 5 場＋32強×2＋準決賽，共 8 場',
+     desc:'耗資約50億美元建造，最顯著特色是半透明淚滴形頂篷，覆蓋整個場館並延伸至東南角廣場。原使用人工草皮（服務兩支NFL球隊），世界盃前須拆除部分永久座位以符合FIFA球場規格。2023年美洲金盃決賽吸引72,963名觀眾（場館足球史上最高），Santiago Giménez替補破門助墨西哥奪第9座金盃。2028年洛杉磯奧運將在此舉辦游泳項目，可容納38,000人，為奧運史上最大游泳賽場。',
+     tags:['NFL','2028奧運游泳','淚滴形頂篷','金盃決賽記錄','8場世界盃']},
+  "Levi's Stadium, San Francisco Bay Area":
+    {lat:37.4033,lng:-121.9694,c:'us',city:'San Francisco',ld:'n',
+     photo:"https://stadiumdb.com/pictures/stadiums/usa/levis_stadium/levis_stadium12.jpg",
+     cap:'71,000',opened:'2014',surface:'天然草皮',team:"San Francisco 49ers（NFL）",wc2026:'小組賽 5 場＋32強，共 6 場',
+     desc:"取代舊主場 Candlestick Park 而建，距舊金山市中心約40英里。以環保設計著稱，視野清晰，但上層看台正對下午及傍晚陽光直射，歷次賽事屢有球迷中暑送醫紀錄。曾兩度舉辦Super Bowl（2016、2026），2026年決賽前 Bad Bunny 擔任中場秀，Lady Gaga 與 Ricky Martin 客串登場。2016年美洲百年金盃揭幕戰，James Rodríguez 攻入 2-0 助哥倫比亞擊敗地主美國。",
+     tags:['NFL','Super Bowl×2','環保設計','太陽直射挑戰','6場世界盃']},
+  'Arrowhead Stadium, Kansas City':
+    {lat:39.0489,lng:-94.4839,c:'us',city:'Kansas City',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/arrowhead_stadium/arrowhead_stadium11.jpg',
+     cap:'73,000',opened:'1972（2010年翻新）',surface:'天然草皮',team:'Kansas City Chiefs（NFL）',wc2026:'小組賽 4 場＋32強＋準決賽，共 6 場',
+     desc:'本屆世界盃美國境內最古老場館，1972年建成時刻意與MLB皇家隊分開興建，是當年難得一見的單一運動場館。弧形頂部輪廓為最大特色，角落座位真正坐落於場地角落。已移除部分座位以符合FIFA規格。2018年起舉辦6次AFC冠軍賽（聯盟歷史第二多），Chiefs四度晉級超級盃。2007年密蘇里對堪薩斯大學橄欖球賽（全國排名第4對第2），密蘇里以36-28勝出，被視為場館歷史最大賽事之一。',
+     tags:['NFL','美國最老世盃場館','Chiefs王朝','準決賽場地','6場世界盃']},
+  'NRG Stadium, Houston':
+    {lat:29.6847,lng:-95.4107,c:'us',city:'Houston',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/reliant_stadium/reliant_stadium14.jpg',
+     cap:'72,000',opened:'2002',surface:'天然草皮',team:'Houston Texans（NFL）',wc2026:'小組賽 5 場＋32強＋16強，共 7 場',
+     desc:'全球首座配備可收式屋頂的現代NFL球場，兩段屋頂在中場交會，開合約需7分鐘，世界盃預計全程關閉。原名 Reliant Stadium，改名 NRG Stadium 後，世界盃結束將再改回 Reliant——兩者皆為能源公司，十足休士頓風格。每年3月舉辦「Houston Livestock Show and Rodeo」，今年吸引逾260萬人次。2010年MLS全明星賽，Chicharito與曼聯以5-2擊敗MLS明星隊，是首支在常規時間勝出的國際俱樂部。',
+     tags:['NFL','首座可收式屋頂NFL場','牛仔競技260萬人','7場世界盃']},
+  'AT&T Stadium, Dallas':
+    {lat:32.7480,lng:-97.0930,c:'us',city:'Dallas',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/cowboys_stadium/cowboys_stadium18.jpg',
+     cap:'94,000',opened:'2009',surface:'天然草皮',team:"Dallas Cowboys（NFL）",wc2026:'小組賽 5 場＋32強×2＋16強＋準決賽，共 9 場（全屆最多）',
+     desc:"暱稱『Jerry World』（源自Cowboys老闆Jerry Jones），本屆世界盃最大容量、場次最多的場館。兩座300英尺高拱架橫跨場館，支撐起世界最高球場頂篷之一。雙側超大螢幕開館時為全球最大，大到NFL球員曾踢中螢幕。可收式屋頂開啟時的小缺口，是向前主場Texas Stadium致敬。場館首場賽事是2009年Concacaf金盃，Costa Rica傳奇球員Celso Borges打進場館歷史首球，夜場墨西哥對海地吸引82,252人。",
+     tags:['NFL','全屆場次最多','Jerry World','最高頂篷','準決賽場地','9場世界盃']},
+  'Hard Rock Stadium, Miami':
+    {lat:25.9580,lng:-80.2389,c:'us',city:'Miami',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/dolphins_stadium/dolphins_stadium17.jpg',
+     cap:'65,000',opened:'1987',surface:'天然草皮',team:'Miami Dolphins（NFL）、Miami Hurricanes（大學橄欖球）',wc2026:'小組賽 4 場＋32強＋準決賽＋三四名決定賽，共 7 場',
+     desc:'「Miami Stadium」是其歷史第九個名稱，歷經Joe Robbie Stadium、Pro Player Park等八個別名。從露天球場演化至今，2016年翻新加裝頂篷。除6屆Super Bowl外，曾承接MLB棒球（Marlins兩度奪世界大賽）、F1邁阿密大獎賽及網球邁阿密公開賽。2024年美洲盃決賽（阿根廷1:0哥倫比亞）7000人無票入場、哥倫比亞足協主席現場打架，Shakira擔任中場秀，她也將聯合主持本屆決賽中場。',
+     tags:['NFL','三四名決定賽','Shakira中場','美洲盃決賽混亂','9個名稱紀錄','7場世界盃']},
+  'Mercedes-Benz Stadium, Atlanta':
+    {lat:33.7554,lng:-84.4009,c:'us',city:'Atlanta',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/mercedes_benz_stadium/mercedes_benz_stadium14.jpg',
+     cap:'75,000',opened:'2017',surface:'天然草皮',team:'Atlanta Falcons（NFL）、Atlanta United（MLS）、Atlanta NWSL（即將進駐）',wc2026:'小組賽 5 場＋32強＋16強＋準決賽，共 8 場',
+     desc:'可收式屋頂採獨特風車形設計，另一端設巨型玻璃幕牆對外開放視野。場館特別之處在於場內食物定價與場外相近，是老闆Arthur Blank追求球迷體驗的核心承諾。同時考量橄欖球與足球需求而設計，Atlanta United進駐後成效卓著。2019年Super Bowl LIII在此舉行，Patriots以13-3擊敗Rams，是史上最低分的超級盃。2018年Atlanta United在主場2:0擊敗Portland Timbers奪MLS Cup。',
+     tags:['NFL','MLS','風車形屋頂','玻璃幕牆','平民票價','準決賽場地','8場世界盃']},
+  'Lincoln Financial Field, Philadelphia':
+    {lat:39.9008,lng:-75.1675,c:'us',city:'Philadelphia',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/lincoln_financial_field/lincoln_financial_field12.jpg',
+     cap:'69,000',opened:'2003',surface:'天然草皮',team:'Philadelphia Eagles（NFL）、Temple Owls（大學橄欖球）',wc2026:'小組賽 5 場＋16強，共 6 場',
+     desc:'北端鋼架高塔上設有圓形座席「Eagles Nest」，是最特別的建築特色；頂部原有風力發電機組，2019年拆除未再復建。緊鄰I-95高速，Septa列車直達，世界盃散場後免費搭乘。費城是美國陸軍對海軍年度橄欖球賽最常見主辦地，歷任總統從杜魯門到川普均曾出席。場館首賽是2003年曼聯對巴塞隆納，Ronaldinho助攻Kluivert破門，曼聯3:1逆轉。去年Liverpool對Arsenal吸引69,879人，打破費城足球入場紀錄。',
+     tags:['NFL','Eagles Nest塔座','16強場地','Army-Navy年度賽','6場世界盃']},
+  'MetLife Stadium, New York/New Jersey':
+    {lat:40.8135,lng:-74.0745,c:'us',city:'New York/NJ',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/meadowlands_stadium/meadowlands_stadium16.jpg',
+     cap:'82,500',opened:'2010',surface:'天然草皮',team:'NY Giants（NFL）、NY Jets（NFL）',wc2026:'小組賽 5 場＋32強＋16強＋決賽 🏆，共 8 場',
+     desc:'本屆決賽場地（7月19日），造價約16億美元，外觀以鋁板條環繞立面，無頂棚設計源於資金協議變更。位於紐澤西澤地，交通是最大挑戰——無直達鐵路，大型賽事後車潮嚴重堵塞。附近American Dream購物中心以步道相連，內設水上樂園及室內滑雪場。2016年美洲百年金盃決賽，智利以罰球擊敗阿根廷，Messi在通道宣告退出國家隊（後反悔）。去年Chelsea在此奪世俱盃，Trump高調出席。',
+     tags:['NFL','決賽場地🏆','最大容量82,500','交通最不便','雙主場','8場世界盃']},
+  'Gillette Stadium, Boston':
+    {lat:42.0909,lng:-71.2643,c:'us',city:'Boston',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/usa/gillette_stadium/gillette_stadium14.jpg',
+     cap:'65,000',opened:'2002',surface:'天然草皮',team:'New England Patriots（NFL）、New England Revolution（MLS）、Boston Legacy（NWSL）',wc2026:'小組賽 5 場＋32強＋準決賽，共 7 場',
+     desc:'建於舊Foxboro Stadium原址旁（曾是1994年世界盃場館），東北角刻意切出缺口作為Patriots老闆Robert Kraft指定的「宏偉入口」，入口旁矗立模型燈塔，可360度俯瞰球場及Patriot Place購物中心。2002年MLS Cup，LA Galaxy靠Carlos Ruiz第113分鐘黃金進球擊敗New England Revolution，是MLS史上最後一場黃金進球決賽，61,316人見證。2004年雪地AFC冠軍賽對抗Peyton Manning與印第安納波利斯小馬，是Patriots王朝最具代表性的主場時刻之一。',
+     tags:['NFL','MLS','NWSL','燈塔入口','準決賽場地','7場世界盃']},
+  'Estadio Azteca, Mexico City':
+    {lat:19.3029,lng:-99.1506,c:'mx',city:'Mexico City',ld:'e',
+     photo:'https://stadiumdb.com/pictures/stadiums/mex/estadio_azteca/estadio_azteca80.jpg',
+     cap:'83,000',opened:'1966',surface:'天然草皮',team:'Club América、Cruz Azul、Atlante（Liga MX）',wc2026:'開幕賽 🎉 ＋ 小組賽 2 場＋32強＋16強，共 5 場',
+     desc:'本屆最具標誌性場館，毫無爭議。最新翻新今春完工，官方容量升至87,500（FIFA登記83,000）。史上首個三度主辦世界盃的球場，1970年及1986年均辦決賽。海拔2,200公尺（7,200英尺）加上熱烈球迷，令客隊聞之色變。Maradona「上帝之手」與「世紀進球」均在此誕生。Michael Jackson 1993年「Dangerous」巡演五場吸引逾50萬人；U2「360°」巡演2011年吸引282,978人。',
+     tags:['三屆世界盃🏆','開幕賽','Maradona聖地','海拔2200公尺','最具標誌性','5場世界盃']},
+  'Akron Stadium, Guadalajara':
+    {lat:20.6817,lng:-103.3628,c:'mx',city:'Guadalajara',ld:'w',
+     photo:'https://stadiumdb.com/pictures/stadiums/mex/estadio_omnilife/estadio_omnilife12.jpg',
+     cap:'48,000',opened:'2010',surface:'天然草皮',team:'CD Guadalajara "Chivas"（Liga MX）',wc2026:'小組賽 4 場',
+     desc:'從內部看似乎並無特別之處，但外觀卻是本屆世界盃最震撼的場館立面之一。由法國建築師Jean-Marie Massaud與Daniel Pouzet設計，外型模仿火山噴發，場館結構絕大部分藏於草坡人工丘之內，只有360度環形屋頂露出地面，球迷從山坡懸挑入口進場。2023年Canelo Álvarez在此迎戰英國拳手John Ryder，報告入場逾51,000創場館紀錄。2010年開幕，Chicharito上半場穿Chivas球衣攻入場館首球，下半場換上曼聯球衣繼續出賽。',
+     tags:['Liga MX','Chivas','火山外觀','藏於山丘','法國建築師','4場世界盃']},
+  'Estadio BBVA, Monterrey':
+    {lat:25.6694,lng:-100.3101,c:'mx',city:'Monterrey',ld:'n',
+     photo:'https://stadiumdb.com/pictures/stadiums/mex/estadio_bbva_bancomer/estadio_bbva_bancomer12.jpg',
+     cap:'53,500',opened:'2015',surface:'天然草皮',team:'CF Monterrey "Rayados"（Liga MX）',wc2026:'小組賽 3 場＋32強，共 4 場',
+     desc:'本屆世界盃觀景最壯麗的場館——從看台望去正南方矗立近6,000英尺高的「馬鞍山（Cerro de la Silla）」，預計球迷空拍照將佔滿社群媒體。懸臂式「鋼鐵巨人」屋頂兼具遮陽與導入氣流功能，有效降低東北墨西哥的炎熱。場館及周邊設計有多項永續環保設計。Bad Bunny「World Hottest Tour」2022年在此連辦兩場售罄演唱會。2024年4月，Messi與Inter Miami在此不敵Monterrey，以3:1總比分出局。',
+     tags:['Liga MX','Rayados','馬鞍山美景','懸臂式屋頂','Messi落敗地','4場世界盃']},
+};
+
+const CCOL={ca:'#22D3EE',us:'#818CF8',mx:'#4ADE80'};
+const CNAME={ca:'🇨🇦 Canada',us:'🇺🇸 USA',mx:'🇲🇽 Mexico'};
+
+// ── Map setup ─────────────────────────────────────────────────────────────────
+const map=L.map('map',{
+  center:[36,-97],zoom:3,minZoom:2,maxZoom:8,
+  zoomControl:false,attributionControl:false,
+  scrollWheelZoom:true,doubleClickZoom:true,dragging:true,
+});
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+// Layer 1: Dark base (whole world)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+  {subdomains:'abcd',maxZoom:19}).addTo(map);
+
+// Layer 2: Real country boundaries via Natural Earth GeoJSON
+const polyStyle={
+  fillColor:'#eef6ff',fillOpacity:0.78,
+  color:'#88aacc',weight:1.0,opacity:0.8,
+  interactive:false
+};
+const TARGET=['USA','CAN','MEX'];
+fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+  .then(r=>r.json())
+  .then(data=>{
+    L.geoJSON(data,{
+      filter:f=>{
+        const iso=f.properties.ADM0_A3||f.properties.ISO_A3||'';
+        return TARGET.includes(iso);
+      },
+      style:()=>polyStyle,
+      interactive:false,
+    }).addTo(map);
+  })
+  .catch(()=>{
+    // Fallback bounding rectangles if network unavailable
+    [[24,-125,50,-66],[42,-141,84,-52],[14,-118,33,-86]]
+      .forEach(([s,w,n,e])=>L.rectangle([[s,w],[n,e]],polyStyle).addTo(map));
+  });
+
+// Layer 3: Dark labels on top
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
+  {subdomains:'abcd',maxZoom:19,opacity:0.7}).addTo(map);
+
+// ── Venue markers ─────────────────────────────────────────────────────────────
+// Strategy:
+//   • DOT marker: small glowing circle, zIndex high
+//   • LABEL: L.marker with divIcon, anchored so it never overlaps the dot
+//     Offset varies by ld (label direction): n=above, s=below, e=right, w=left
+//   • Active: dot gets glow + ring; label color brightens — dot and label ALWAYS separated
+
+function dotIcon(col,active){
+  const r = active ? 11 : 5;   // active = big, normal = small
+  const outerR = r + 5;
+  const size = outerR * 2;
+
+  if(active){
+    // Pulsing: use a wrapper div with CSS animation; inner circle is solid
+    const glow = `drop-shadow(0 0 5px ${col}) drop-shadow(0 0 10px ${col}88)`;
+    const html = `<div style="
+        width:${size}px;height:${size}px;
+        display:flex;align-items:center;justify-content:center;
+        animation:pinPulse 0.8s ease-in-out infinite;
+        transform-origin:center center;
+      ">
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <circle cx="${outerR}" cy="${outerR}" r="${r}"
+          fill="${col}" stroke="white" stroke-width="2.5"
+          style="filter:${glow}"/>
+        <circle cx="${outerR}" cy="${outerR}" r="${r+5}"
+          fill="none" stroke="${col}" stroke-width="1.5" opacity="0.4"/>
+      </svg>
+    </div>`;
+    return L.divIcon({html,className:'',iconSize:[size,size],iconAnchor:[outerR,outerR]});
+  } else {
+    // Small quiet dot
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      <circle cx="${outerR}" cy="${outerR}" r="${r}"
+        fill="${col}bb" stroke="rgba(255,255,255,0.65)" stroke-width="1.4"/>
+    </svg>`;
+    return L.divIcon({html:svg,className:'',iconSize:[size,size],iconAnchor:[outerR,outerR]});
+  }
+}
+
+// Label positioned AWAY from dot using iconAnchor + fixed offset per direction
+// iconAnchor is the point of the icon that corresponds to the marker lat/lng
+// We want the label TEXT to be offset from the pin by ~14px
+function labelIcon(city,col,active,ld){
+  const fc=active?col:'#d1d9e2';
+  const ts=active
+    ?`0 0 6px rgba(0,0,0,1),0 0 3px rgba(0,0,0,1),1px 1px 2px rgba(0,0,0,1)`
+    :`0 0 5px rgba(0,0,0,1),1px 1px 3px rgba(0,0,0,1)`;
+  const fs=active?12:9;
+  const fw=active?900:700;
+  const html=`<div style="
+    font-size:${fs}px;font-weight:${fw};color:${fc};
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    white-space:nowrap;pointer-events:none;
+    text-shadow:${ts};
+    letter-spacing:.04em;line-height:1;
+  ">${city}</div>`;
+
+  // iconAnchor positions the rendered label div relative to the lat/lng point
+  // We want 14px clearance from the dot (dot is 12-18px wide)
+  const PAD=15; // px from pin centre
+  let anchor,size;
+  // We measure label width approximately: 7px per char
+  const w=Math.max(50,city.length*7+4);
+  const h=14;
+  switch(ld){
+    case 'n': anchor=[w/2, h+PAD];  size=[w,h]; break; // label above: bottom of div at pin
+    case 's': anchor=[w/2, -PAD];   size=[w,h]; break; // label below: top of div at pin
+    case 'e': anchor=[-PAD, h/2];   size=[w,h]; break; // label right: left edge at pin
+    case 'w': anchor=[w+PAD, h/2];  size=[w,h]; break; // label left: right edge at pin
+    default:  anchor=[w/2, h+PAD];  size=[w,h];
+  }
+  return L.divIcon({html,className:'',iconSize:size,iconAnchor:anchor});
+}
+
+const vMarkers={};
+Object.entries(VENUES).forEach(([venue,geo])=>{
+  const col=CCOL[geo.c];
+  // Dot
+  const dot=L.marker([geo.lat,geo.lng],{icon:dotIcon(col,false),zIndexOffset:20}).addTo(map);
+  // Label (non-interactive, always on top but separate from dot)
+  const lbl=L.marker([geo.lat,geo.lng],{
+    icon:labelIcon(geo.city,col,false,geo.ld),
+    zIndexOffset:10,interactive:false
+  }).addTo(map);
+  dot.on('click',()=>showVenueInfo(venue));
+  vMarkers[venue]={dot,lbl,col,geo};
+});
+
+function activatePin(venue,color){
+  const vm=vMarkers[venue];if(!vm)return;
+  vm.dot.setIcon(dotIcon(color,true));
+  vm.dot.setZIndexOffset(200);
+  vm.lbl.setIcon(labelIcon(vm.geo.city,color,true,vm.geo.ld));
+  vm.lbl.setZIndexOffset(190);
+}
+function deactivatePin(venue){
+  const vm=vMarkers[venue];if(!vm)return;
+  vm.dot.setIcon(dotIcon(vm.col,false));
+  vm.dot.setZIndexOffset(20);
+  vm.lbl.setIcon(labelIcon(vm.geo.city,vm.col,false,vm.geo.ld));
+  vm.lbl.setZIndexOffset(10);
+}
+
+// ── Venue info ────────────────────────────────────────────────────────────────
+function showVenueInfo(venue){
+  const v=VENUES[venue];if(!v)return;
+  const col=CCOL[v.c];
+  document.getElementById('vp').style.display='none';
+  const vc=document.getElementById('vc');
+  vc.style.display='block';
+  vc.innerHTML=`
+    <div class="venue-hero-wrap">
+      <img class="venue-hero" src="${v.photo}" alt="${venue}"
+        referrerpolicy="no-referrer"
+        onerror="this.style.background='#e2e8f0';this.style.height='80px'">
+      <div class="venue-country-badge" style="background:${col};color:#0f172a">${CNAME[v.c]}</div>
+    </div>
+    <div class="venue-body">
+      <div class="venue-name">${venue}</div>
+      <div class="venue-city">📍 ${v.city}</div>
+      <div class="venue-stats">
+        <div class="vs-item"><div class="vs-val">${v.cap}</div><div class="vs-lbl">容納人數</div></div>
+        <div class="vs-item"><div class="vs-val">${v.opened}</div><div class="vs-lbl">啟用年份</div></div>
+        <div class="vs-item"><div class="vs-val" style="font-size:11px;line-height:1.3">${v.wc2026}</div><div class="vs-lbl">2026世界盃</div></div>
+      </div>
+      <div class="vsec">主隊 / 主要用途</div>
+      <div class="vdesc" style="color:#1e293b;font-size:12px">${v.team}</div>
+      <div class="vsec">草皮類型</div>
+      <div class="vdesc" style="color:#1e293b;font-size:12px">${v.surface}</div>
+      <div class="vsec">場館介紹</div>
+      <div class="vdesc">${v.desc}</div>
+      <div class="vtags">${v.tags.map(t=>`<span class="vtag">${t}</span>`).join('')}</div>
+    </div>`;
+}
+
+// ══ Data ══════════════════════════════════════════════════════════════════════
+const COUNTRIES={
+  'Mexico':{zh:'墨西哥',code:'mx'},'South Africa':{zh:'南非',code:'za'},
+  'South Korea':{zh:'南韓',code:'kr'},'Czechia':{zh:'捷克',code:'cz'},
+  'Canada':{zh:'加拿大',code:'ca'},'Bosnia & Herzegovina':{zh:'波士尼亞',code:'ba'},
+  'Qatar':{zh:'卡達',code:'qa'},'Switzerland':{zh:'瑞士',code:'ch'},
+  'Brazil':{zh:'巴西',code:'br'},'Morocco':{zh:'摩洛哥',code:'ma'},
+  'Haiti':{zh:'海地',code:'ht'},'Scotland':{zh:'蘇格蘭',code:'gb-sct'},
+  'USA':{zh:'美國',code:'us'},'Paraguay':{zh:'巴拉圭',code:'py'},
+  'Australia':{zh:'澳洲',code:'au'},'Turkey':{zh:'土耳其',code:'tr'},
+  'Germany':{zh:'德國',code:'de'},'Curaçao':{zh:'古拉索',code:'cw'},
+  'Ivory Coast':{zh:'象牙海岸',code:'ci'},'Ecuador':{zh:'厄瓜多',code:'ec'},
+  'Netherlands':{zh:'荷蘭',code:'nl'},'Japan':{zh:'日本',code:'jp'},
+  'Sweden':{zh:'瑞典',code:'se'},'Tunisia':{zh:'突尼西亞',code:'tn'},
+  'Spain':{zh:'西班牙',code:'es'},'Cape Verde':{zh:'維德角',code:'cv'},
+  'Belgium':{zh:'比利時',code:'be'},'Egypt':{zh:'埃及',code:'eg'},
+  'Saudi Arabia':{zh:'沙烏地阿拉伯',code:'sa'},'Uruguay':{zh:'烏拉圭',code:'uy'},
+  'Iran':{zh:'伊朗',code:'ir'},'New Zealand':{zh:'紐西蘭',code:'nz'},
+  'France':{zh:'法國',code:'fr'},'Senegal':{zh:'塞內加爾',code:'sn'},
+  'Iraq':{zh:'伊拉克',code:'iq'},'Norway':{zh:'挪威',code:'no'},
+  'Argentina':{zh:'阿根廷',code:'ar'},'Algeria':{zh:'阿爾及利亞',code:'dz'},
+  'Austria':{zh:'奧地利',code:'at'},'Jordan':{zh:'約旦',code:'jo'},
+  'Portugal':{zh:'葡萄牙',code:'pt'},'DR Congo':{zh:'剛果民主共和國',code:'cd'},
+  'Uzbekistan':{zh:'烏茲別克',code:'uz'},'Colombia':{zh:'哥倫比亞',code:'co'},
+  'England':{zh:'英格蘭',code:'gb-eng'},'Croatia':{zh:'克羅埃西亞',code:'hr'},
+  'Ghana':{zh:'迦納',code:'gh'},'Panama':{zh:'巴拿馬',code:'pa'},
+};
+// ══ 賽前觀戰指南 ══════════════════════════════════════════════════════════════
+const GUIDES={
+  'Mexico|South Africa':{
+    title:'2010世界盃開幕戰歷史重演！',
+    body:'聯合東道主墨西哥坐鎮著名的阿茲特克球場，在十萬地主的狂熱吶喊中拉開本屆盛會序幕。面對首戰的巨大壓力，墨軍勢必主導控球，透過細膩的地面傳導與窒息式的高壓逼搶搶攻；然而南非具備極佳的體能與極速反擊能力。墨西哥必須在中場建立起屏障，防止對手利用反擊亂中取勝，這將全面考驗地主中後衛的防守專注度。',
+    key:'聖地亞哥·希梅內斯 (Santiago Giménez) — 墨西哥鋒線尖刀，他的禁區埋伏與精準的破門把握度，是墨軍能否在首戰全取三分、安定主場民心的關鍵。'
+  },
+  'South Korea|Czechia':{
+    title:'太極虎與東歐鐵騎的鋼鐵碰撞！',
+    body:'亞洲傳統強權南韓首戰即面臨歐陸硬仗。這是一場講求速度與身體對抗的矛盾對決。南韓擁有極高的戰術執行力，預期將利用邊路的極速狂飆進行衝擊；而捷克則以強悍的身體素質與紀律性的防守體系著稱。捷克極具破壞力的高空球與定位球戰術，將對南韓身材相對單薄的後防造成威脅，誰能主導中場節奏將是晉級關鍵。',
+    key:'孫興慜 (Son Heung-min) — 功勳隊長，他的大賽經驗與反擊時無解的內切射門，是南韓撕開東歐鐵壁、帶領太極虎突圍的精神支柱。'
+  },
+  'Czechia|South Africa':{
+    title:'風格極端的肉搏防線與非洲靈性對決！',
+    body:'這是一場典型的歐非風格大對抗。捷克打法直接，講求高強度的身體肉搏與高空立體轟炸，利用身高優勢在死球爭奪中佔盡上風。南非則仰賴非洲球隊特有的敏捷身手與快速攻守轉換，試圖用地面極速撕開捷克的遲緩防線。當捷克的空中重砲碰上南非的地面快攻，定位球的防守細節與中場防守攔截，將直接決定這場出線生死戰的走向。',
+    key:'派屈克·希克 (Patrik Schick) — 捷克鋒線高塔，他強大的禁區空中支配力與精準的門前嗅覺，將是徹底摧毀南非防線、制霸禁區的重型武器。'
+  },
+  'Mexico|South Korea':{
+    title:'地主東道主面臨世界級的嚴峻試金石！',
+    body:'雖然墨西哥在過去世界盃歷史對戰中佔有兩戰全勝（1998與2018年）的優勢，但如今的太極虎坐擁多位旅歐頂級聯賽球星，戰力不可同日而語。南韓具備極快的攻守轉換與鐵血防守韌性，勢必對墨軍後防施加極大壓力。墨西哥必須依賴陣中細膩的腳下小範圍短傳配合與主場球迷的海嘯窒息氛圍，全力扼制南韓兩翼的致命反擊。',
+    key:'李康仁 (Lee Kang-in) — 南韓中場魔術師，其開闊的傳球視野與無解的邊路擺脫能力，將是反客為主、為前場反擊源源不絕輸送燃料的核心發動機。'
+  },
+  'South Africa|South Korea':{
+    title:'末輪背水一戰的搶分尊嚴之戰！',
+    body:'小組賽最後一輪交手，兩隊都將毫無保留地傾巢而出。南非充滿爆發力的邊路突擊與神祕靈性，將正面衝擊太極虎傲視群雄的團隊韌性與鐵血拼勁。在球員體能達到極限的末輪決戰中，這是一場純粹的意志力大比拼。誰能在中場的混亂局勢中展現更嚴密的防守攔截，並把握住反擊中的臨門一腳，誰就能在局勢混沌的A組中殺出一條血路。',
+    key:'泰博霍·莫庫納 (Teboho Mokoena) — 南非中場大閘，他不僅要在防守端阻斷南韓的推進，更需要發揮其出色的遠射天賦與定位球調度。'
+  },
+  'Czechia|Mexico':{
+    title:'小組末輪決定16強門票的命運決戰！',
+    body:'這場大戰直接攸關分組晉級命運，雙方勢必燃燒盡最後一滴血。墨西哥將端出拉丁美洲細膩的地面傳導配合與高壓掃蕩，試圖全面瓦解捷克戰術簡單、卻破壞力十足的高空立體轟炸。在全場地主球迷震耳欲聾的吶喊聲中，墨西哥能否在禁區內抗衡對手的身高與對抗優勢，並抓住反擊機會給予致命一擊，將是地主能否挺進淘汰賽的終極試金石。',
+    key:'艾德森·阿爾瓦雷斯 (Edson Álvarez) — 墨西哥隊長兼中場鐵閘，他在此役必須展現頂級的攔截掃蕩能力，在第一線掐斷捷克的長傳連線。'
+  },
+  // ── Group B ──
+  'Canada|Bosnia & Herzegovina':{
+    title:'楓葉軍團的地主榮耀首戰！',
+    body:'作為聯合東道主之一的加拿大，在多倫多主場迎來時隔12年重返世界盃的波士尼亞。加拿大在總教練馬希執教下，勢必利用陣中頂級的速度發動海嘯般的快速反擊；而波士尼亞球風講求歐陸紀律與高強度身體對抗。波士尼亞由老將哲科領銜的後防盾牌，能否抵擋住地主邊路的瘋狂撕裂，將是一場極速快攻與鐵血防守的激情對決。',
+    key:'艾方索·戴維斯 (Alphonso Davies) — 加拿大進攻核心，他恐怖的邊路爆發力與逆天速度，是撕開歐陸鐵壁、帶動主場氣勢的最強利刃。'
+  },
+  'Qatar|Switzerland':{
+    title:'亞洲頂級傳控與十字軍團的歐陸戰術博弈！',
+    body:'亞洲盃冠軍卡達本次由名帥洛佩特吉領軍，誓要擺脫2022年身為地主三戰全敗的尷尬紀錄。卡達具備絕佳的團隊默契與流暢的地面短傳，但在戰術素養極高的瑞士面前，中場控制力與身體對抗將面臨嚴苛考驗。瑞士擅長高壓逼搶與高效攻守轉換，中場大腦的攔截與節奏掌控將是十字軍團能否反客為主的致命核心。',
+    key:'格蘭尼特·札卡 (Granit Xhaka) — 瑞士的中場指揮官兼靈魂，他的精準長傳、防守調度與大賽經驗，將全面主宰整場比賽的進攻節奏。'
+  },
+  'Switzerland|Bosnia & Herzegovina':{
+    title:'純正歐洲風味的硬漢強強肉搏！',
+    body:'兩支熟悉彼此的歐陸勁旅在次輪狹路相逢。瑞士講求整體的跑動、高效的戰術執行力與中場壓制；而波士尼亞則擁有優異的身體條件與出色的禁區高空球優勢。中場的瘋狂搶斷與反擊速度是此役的兵家必爭之地，兩隊容錯率極低，誰能在陣地戰的防守混亂中減少失誤、並抓住定位球給予致命一擊，誰就能帶走關鍵三分。',
+    key:'馬紐爾·阿坎吉 (Manuel Akanji) — 瑞士後防核心，其頂級的防守意識與一對一能力，是抗衡波士尼亞高大鋒線立體轟炸與哲科禁區威脅的終極盾牌。'
+  },
+  'Canada|Qatar':{
+    title:'美洲速度與亞洲傳控的跨洲際極速對決！',
+    body:'加拿大擁有令人聞風喪膽的邊路反擊速度與侵略性，而卡達則擅長細膩的腳下傳導與兩翼快速內切。這場比賽是兩隊搶分出線的關鍵硬仗，誰能將進攻節奏帶入自己熟悉的軌道，並有效切斷對方在前場的核心連線，就能在殘酷的B組出線爭奪戰中搶佔晉級先機。這場比賽的攻守轉換速度將決定一切。',
+    key:'喬納森·戴維 (Jonathan David) — 加拿大的前鋒尖刀，門前嗅覺極其敏銳，在球隊高速反擊中需要他展現一擊必殺的頂級射門把握度。'
+  },
+  'Bosnia & Herzegovina|Qatar':{
+    title:'背水一戰的小組末輪搶分淘汰賽！',
+    body:'兩隊若想以小組前二或最佳第三名晉級，末輪交手毫無保留空間。波士尼亞勢必全力主導身體對抗與高空轟炸，藉此重壓卡達的防線。卡達則需發揮靈活的小範圍配合與絕佳的默契，利用速度反擊尋求破門。這場比賽容錯率極低，誰能挺過中場防線的體能極限並守住定位球，誰就能笑到最後。',
+    key:'阿菲夫 (Akram Afif) — 兩度當選亞洲足球先生的卡達前場核心大腦，球隊的傳控節奏與致命妙傳全看他的創造力，也是球隊打破歐陸防線的唯一解。'
+  },
+  'Switzerland|Canada':{
+    title:'分組末輪最引人矚目的榜首焦點對決！',
+    body:'加拿大的地主反擊海嘯將正面衝擊瑞士由頂級聯賽球星組成的鋼鐵防線。地主球隊的速度上限與現場高壓氛圍，將對抗瑞士大賽老到的臨場經驗與完美防守韌性。這是一場決定分組龍頭高下、或是直接決定晉級命運的頂級火拼，緊湊窒息的節奏與中場高強度的球權爭奪，絕對會讓全場球迷大呼過癮。',
+    key:'格雷戈·科貝爾 (Gregor Kobel) — 瑞士當家明星門神，目前效力於德甲多特蒙德。面對加拿大由戴維斯與戴維領軍的恐怖速度風暴，他高超的撲救技術與後防指揮能力，將是瑞士保住清白之身的最後防線。'
+  },
+  // ── Group C ──
+  'Brazil|Morocco':{
+    title:'森巴軍團正面迎戰北非鋼鐵黑馬！',
+    body:'奪冠熱門巴西首戰遭遇上屆締造四強神話的摩洛哥。巴西勢必展現頂級進攻天賦，利用前場華麗的地面傳導與個人突破，衝擊對手固若金湯的防線。而摩洛哥紀律嚴明，擅長低位防守後發動犀利的快速反擊。這場矛與盾的跨洲際對決，中場的攔截效率與攻守轉換，將是決定誰能搶下開門紅的關鍵。',
+    key:'小維尼修斯 (Vinícius Júnior) — 巴西左翼進攻尖刀，其恐怖的爆發力與邊路撕裂能力，是球隊打破密集防守的最強利刃。'
+  },
+  'Haiti|Scotland':{
+    title:'加勒比海神祕力量碰撞英倫鐵血風暴！',
+    body:'睽違多年重返正賽的海地，首戰迎戰經驗豐富的蘇格蘭。海地球員身體素質出眾，打法充滿爆發力與前場個人突擊；蘇格蘭則承襲傳統英倫球風，強調高強度對抗、高壓逼搶與邊路傳中。這場球賽的焦點在於中場二波球的爭奪，蘇格蘭能否利用純熟的定位球戰術破門，將直接考驗海地後防的防空專注度。',
+    key:'史考特·麥克托米奈 (Scott McTominay) — 蘇格蘭中場重砲，插上進攻意識極強，是球隊在陣地戰中打破僵局的後插上利器。'
+  },
+  'Morocco|Scotland':{
+    title:'攸關晉級命運的歐非硬漢強強對決！',
+    body:'兩支以防守韌性見長的勁旅在次輪狹路相逢。摩洛哥擁有世界級的邊路防守與中場掃蕩能力，在穩固防線後能迅速轉守為攻；蘇格蘭則帶著永不言棄的拼勁，擅長利用積極的跑動與高空球對抗來製造禁區混亂。雙方在戰術上都極其強調身體對抗，這將是一場中場肉搏窒息、死球防守決定一擊必殺的消耗戰。',
+    key:'阿什拉夫·哈基米 (Achraf Hakimi) — 摩洛哥明星右後衛，擁有世界級的速度與助攻能力，是球隊右路攻防轉換的靈魂核心。'
+  },
+  'Brazil|Haiti':{
+    title:'華麗進攻風暴與加勒比海鐵壁的攻防大戰！',
+    body:'面對實力堅強的五星巴西，海地勢必採取極端的低位密集防守，企圖用強悍的身體對抗卡位，阻斷森巴軍團的傳導路線。巴西則會主導整場比賽的控球權，透過中場核心的靈活調度與兩翼快馬的輪番撕裂，試圖在陣地戰中尋找破綻。海地能否挺過巴西海嘯般的進攻波次並發動零星反擊，將是此役最大看點。',
+    key:'羅德里戈 (Rodrygo) — 巴西前場多面手，其細膩的腳下技術與狹小空間內的突破能力，將是球隊瓦解對手密集防守的解套鑰匙。'
+  },
+  'Morocco|Haiti':{
+    title:'末輪不容有失的搶分生死對決！',
+    body:'摩洛哥若想穩拿淘汰賽門票，此役必須毫無保留全力搶勝。他們將展現優異的整體戰術素養，利用兩翼的快速突進與高效的攻守轉換重壓對手防線。背水一戰的海地則會利用極具侵略性的防守與驚人的身體爆發力，全力阻擋阿特拉斯雄獅的攻勢。這是一場比拼對抗強度與門前射門把握度的決戰，防線容錯率極低。',
+    key:'尤塞夫·恩內斯里 (Youssef En-Nesyri) — 摩洛哥主力前鋒，具備頂級的制空權與門前嗅覺，將是球隊破密集防守的高空轟炸機。'
+  },
+  'Scotland|Brazil':{
+    title:'高潮迭起的榜首大戰與英倫碰撞！',
+    body:'小組賽末輪最受矚目的焦點對決，蘇格蘭由頂級聯賽球星組成的鋼鐵防線，將正面衝擊森巴軍團傲視全球的華麗進攻。蘇格蘭預期將利用主導的高空轟炸與鐵血逼搶，試圖破壞巴西的地面傳導節奏；而巴西則需要用細膩的腳下配合與快速的攻守轉換反制。這是一場決定誰能以分組龍頭之姿晉級的頂級火拼。',
+    key:'布魯諾·吉馬良斯 (Bruno Guimarães) — 巴西中場核心，負責在中場梳理節奏並抵擋蘇格蘭的強硬逼搶，是球隊攻守連繫的生命線。'
+  },
+  // ── Group D ──
+  'USA|Paraguay':{
+    title:'東道主美國首戰亮相！',
+    body:'聯合東道主美國在洛杉磯主場迎戰南美悍旅巴拉圭。美國陣中擁有多位旅歐新星，球風強調快速推進與高強度的前場逼搶；巴拉圭則承襲南美傳統的鐵血防守，擅長利用中場攔截後的迅速攻守轉換。這是一場地主速度風暴與南美堅韌防盾的正面對決，美國能否攻破巴拉圭的低位密集防守將是全場最大看點。',
+    key:'克里斯蒂安·普利西奇 (Christian Pulisic) — 美國進攻核心「美國隊長」，他的邊路突破與內切破門能力，是球隊在主場全取三分的最強箭頭。'
+  },
+  'Australia|Turkey':{
+    title:'高空立體轟炸與地面細膩傳控的洲際博弈！',
+    body:'澳洲袋鼠軍團首戰遭遇技術細膩且進攻狂熱的土耳其。澳洲主打硬朗的歐陸力量型球風，強調高空球優勢與強悍的身體對抗，試圖利用死球與邊路傳中製造威脅；土耳其則以狂熱的拼勁與流暢的地面短傳見長，中場核心的節奏掌控與致命妙傳是他們的進攻命脈，勝負取決於中場攔截效率。',
+    key:'哈坎·恰爾汗奧盧 (Hakan Çalhanoğlu) — 土耳其的中場大腦，他的精準調度、致命直塞球與大師級的自由球絕技，是球隊掌控進攻節奏的終極核心。'
+  },
+  'USA|Australia':{
+    title:'速度與高度的極端跨洲際碰撞！',
+    body:'次輪迎來強強對決，東道主美國對決身材高大的澳洲袋鼠。美國將全面提速，利用陣中邊路的極速狂飆與高壓逼搶，全面撕裂澳洲相對緩慢的後防線；澳洲則會利用極具破壞力的高空立體轟炸與強硬的肉搏防守反制美國。兩隊後防線的補位速度與細節掌控，將直接決定最終生死。',
+    key:'哈利·蘇達爾 (Harry Souttar) — 澳洲198公分的後防巨人，他的高空卡位與禁區制空權，將是抵擋美國地面快速滲透與衝擊的鋼鐵防盾。'
+  },
+  'Turkey|Paraguay':{
+    title:'風格迥異的傳控與逼搶大戰！',
+    body:'這是一場不容有失的搶分關鍵戰。土耳其將主導場上控球，利用陣中天才群的細膩腳下技術與小範圍傳導，試圖撕開巴拉圭固若金湯的防線；而巴拉圭則會展現典型的南美鐵血風格，採取高強度的身體對抗與高壓逼搶，全面切斷土耳其的中場連線並利用反擊尋求破門，防線容錯率極低。',
+    key:'米格爾·阿米隆 (Miguel Almirón) — 巴拉圭進攻靈魂，擁有驚人的長途奔襲速度與攻守轉換敏捷度，是球隊防守反擊中最致命的單兵爆破點。'
+  },
+  'Turkey|USA':{
+    title:'小組末輪最具觀賞性的榜首焦點火拼！',
+    body:'美國的地主速度風暴將正面衝擊星光熠熠的土耳其青年軍。兩隊都具備極強的進攻基因，戰況預期將演變成大開大合的對攻大戰。美國依靠主場海嘯般的窒息氛圍與快速的攻守轉換重壓對手；土耳其則需發揮極具創造力的地面配合反制。這場決定誰能以分組龍頭晉級的火拼，節奏絕對窒息。',
+    key:'阿爾達·居勒爾 (Arda Güler) — 土耳其天才新星，腳下技術極其華麗且具備極強的門前終結能力，是球隊在亂局中打破僵局的奇兵。'
+  },
+  'Paraguay|Australia':{
+    title:'攸關淘汰賽門票的背水一戰生死決戰！',
+    body:'澳洲勢必全力主導身體對抗與長傳轟炸，利用高空球優勢重壓巴拉圭禁區，尋求死球或二波球的致命一擊；巴拉圭則需發揮美洲球隊的堅韌防守與腳下默契，在守住高空攻勢後利用敏捷的速度反擊撕裂澳洲。這場容錯率極低的混戰，不僅比拼雙方體能極限，更是意志力與門前把握度的對決。',
+    key:'馬修·瑞安 (Mathew Ryan) — 澳洲老到的一號門神，大賽經驗極其豐富，在末輪生死戰中需要他展現頂級的撲救與後防指揮能力。'
+  },
+  // ── Group E ──
+  'Germany|Curaçao':{
+    title:'德意志戰車迎擊加勒比海最大黑馬！',
+    body:'奪冠熱門德國首戰在休士頓遭遇隊史首度打進正賽的庫拉索。德國勢必發動引以為傲的高效率團隊壓迫與地面傳控，試圖從開賽就主導局勢；而退無可退的庫拉索球風靈活且具備黑馬拼勁，將面臨德軍世界級中場調度的窒息考驗，這場交鋒勝負在於兩隊的攻守轉換速度。',
+    key:'賈馬爾·穆夏拉 (Jamal Musiala) — 德國進攻核心，擁有頂級的盤球擺脫能力與開闊視野，是德意志戰車撕裂對手密集防線並尋找破綻的最強箭頭。'
+  },
+  'Ivory Coast|Ecuador':{
+    title:'非洲大象正面火拼南美高原硬漢！',
+    body:'兩支世界盃常客在費城迎來首輪硬仗。象牙海岸融合非洲球隊驚人的身體爆發力與純熟技術，擅長快節奏的反擊突破；厄瓜多則打法硬朗，強調全場不知疲倦的瘋狂逼搶與兩翼極速突擊。兩軍戰術都極其強調中場的高壓逼搶與身體肉搏，勝負全看誰能掌控二波球並減少門前失誤。',
+    key:'摩伊希斯·凱塞多 (Moisés Caicedo) — 厄瓜多中場鐵閘，負責在第一線攔截並梳理進攻節奏，他的大範圍掃蕩能力是球隊攻守轉換的生命線。'
+  },
+  'Germany|Ivory Coast':{
+    title:'傳控坦克對決非洲鋼鐵大象的歐非焦點戰！',
+    body:'次輪迎來本組重頭戲，德國將在多倫多主導場上控球，依靠中場新星群流暢的小範圍短傳與高位逼搶來重壓對手防線。而象牙海岸具備摧毀性的反擊速度與強硬對抗，勢必利用反擊衝擊德國相對遲緩的後防線。這場攻防博弈節奏極快，後防線的補位專注度將決定勝負。',
+    key:'弗洛里安·維爾茨 (Florian Wirtz) — 德國進攻魔術師，其極具創造力的致命直塞球與門前終結能力，是球隊在陣地戰中打破僵局、撕裂大象鋼鐵防盾的解套鑰匙。'
+  },
+  'Ecuador|Curaçao':{
+    title:'南美極速狂飆正面衝突加勒比海鐵壁！',
+    body:'厄瓜多若想搶下晉級主導權，此役勢必主導攻勢，利用強悍的身體對抗與邊路高空球重壓庫拉索禁區，尋求死球戰術的致命一擊。首度參賽的庫拉索則會採取極端的低位密集防守，依靠堅韌默契與快速快攻在夾縫中尋求爆冷機會。這場不容有失的搶分大戰，防線容錯率極低。',
+    key:'佩爾維斯·埃斯圖皮尼安 (Pervis Estupiñán) — 厄瓜多明星左後衛，具備頂級的邊路突破與傳中能力，是球隊發動立體轟炸、撕裂密集防線的核心發動機。'
+  },
+  'Curaçao|Ivory Coast':{
+    title:'生死一瞬的末輪搶分淘汰賽！',
+    body:'兩隊為了力拼淘汰賽門票，此役毫無保留空間。象牙海岸勢必傾巢而出，利用兩翼的極速衝擊與驚人的身體素質重壓庫拉索後防，誓要在開賽搶攻奠定勝局。庫拉索則需要發揮絕佳的防守韌性與團隊意志力，在守住對手第一波猛攻後，伺機利用定位球調度或反擊偷襲，戰況預期激烈火爆。',
+    key:'西蒙·阿丁格拉 (Simon Adingra) — 象牙海岸邊路快馬，具備無解的單兵爆破與極速內切射門能力，是球隊撕裂對手防線、搶下關鍵三分的關鍵利刃。'
+  },
+  'Ecuador|Germany':{
+    title:'分組末輪最受矚目的榜首焦點生死火拼！',
+    body:'德意志坦克的高效率壓迫將迎戰作風剽悍的厄瓜多高原勁旅。厄瓜多預期將利用硬朗的鐵血逼搶與極速快攻，破壞德國的地面傳導節奏並施加防線壓力。德國則需依靠老到的大賽經驗與完美的團隊防守韌性，在中場高強度的球權爭奪中反制對手，窒息的戰術博弈絕對讓球迷大呼過癮。',
+    key:'安東尼奧·呂迪格 (Antonio Rüdiger) — 德國後防核心，擁有頂級的身體對抗與一對一防守能力，是防線上面對厄瓜多強悍衝擊時不容動搖的鋼鐵巨盾。'
+  },
+  // ── Group F ──
+  'Netherlands|Japan':{
+    title:'歐陸頂級強權遭遇亞洲藍武士的技術大戰！',
+    body:'奪冠熱門荷蘭首戰強碰實力突飛猛進的日本。儘管王牌三笘薰因傷缺陣，日本仍具備絕佳的團隊默契。荷蘭勢必利用流暢傳控發動高位逼搶；而藍武士則需在第一線攔截後，迅速施展邊路突擊。這場跨洲際風格博弈中，誰能穩住中場攻守轉換節奏，誰就能在首戰搶下積分先機。',
+    key:'堂安律 (Ritsu Doan) — 效力於德甲法蘭克福的進攻核心。在球隊左路缺乏單兵爆破利刃的重創下，他從右路內切的盤球擺脫與極具創造力的門前終結，將扛起藍武士前場的核心破門重任。'
+  },
+  'Sweden|Tunisia':{
+    title:'北歐海盜硬漢正面交鋒北非迦太基雄鷹！',
+    body:'實力強悍的瑞典首戰遭遇作風頑強的突尼西亞。瑞典承襲傳統北歐球風，強調高強度對抗、邊路傳中與禁區的高空立體轟炸；而突尼西亞則擅長低位密集防守，依靠強韌的防守紀律與反擊速度攪局。突尼西亞能否挺過瑞典長人陣的高空球轟炸並減少定位球失誤，將是這場關鍵搶分大戰的直接勝負手。',
+    key:'亞歷山大·伊沙克 (Alexander Isak) — 瑞典明星前鋒，身材高大且兼具腳下細膩技術，他的門前嗅覺與破門把握度，是球隊摧毀北非鐵壁的最強箭頭。'
+  },
+  'Netherlands|Sweden':{
+    title:'分組賽最具觀賞性的歐陸強強榜首對決！',
+    body:'橙衣軍團迎戰重返世界盃的北歐強權瑞典。荷蘭將全力展現極具創造力的中場調度與小範圍短傳配合，試圖主導場上進攻節奏；而瑞典則會利用強硬的身體肉搏與大範圍高壓逼搶，全面破壞荷蘭的地面傳導，戰況預期極其焦灼。這是一場歐陸頂級的進攻風暴與北歐鐵壁的激情碰撞，勝負全看中場控制權。',
+    key:'維吉爾·范戴克 (Virgil van Dijk) — 荷蘭隊長兼後防核心，擁有頂級的身體對抗與一對一能力，是抗衡瑞典禁區高空球轟炸的鋼鐵巨盾。'
+  },
+  'Tunisia|Japan':{
+    title:'非洲鐵壁對決亞洲極速反擊的搶分關鍵戰！',
+    body:'兩隊若想從小組中突圍，次輪交手完全沒有退路。突尼西亞勢必採取極端的低位密集防守，企圖用強悍的身體對抗卡位，阻斷日本藍武士的流暢傳導；日本則會全面提速，依靠陣中邊路的快速轉換與敏捷度撕裂對手。這是一場極致的防守防盾與極速反擊的博弈，門前射門把握度將決定最終生死。',
+    key:'遠藤航 (Wataru Endo) — 日本中場鐵閘兼隊長，他在此役必須發揮頂級的攔截與掃蕩能力，在第一線掐斷對手反擊，穩定球隊攻守轉換。'
+  },
+  'Japan|Sweden':{
+    title:'攸關晉級命運的小組末輪生死大戰！',
+    body:'亞洲藍武士迎擊北歐海盜瑞典，這是一場技術傳控與身體高度的洲際大碰撞。瑞典預期將利用主導的高空立體轟炸與鐵血逼搶，重壓日本相對單薄的防線，尋求定位球的致命一擊。日本則需發揮靈活的小範圍配合與絕佳的默契，利用速度進行快速推進破門。這場容錯率極低的混戰，比拼的是雙方的意志力與細節掌控。',
+    key:'久保建英 (Takefusa Kubo) — 日本前場進攻核心，擁有細膩的腳下盤球擺脫與極佳的創造力，是破壞瑞典歐陸鋼鐵防線、為前場輸送反擊燃料的發動機。'
+  },
+  'Tunisia|Netherlands':{
+    title:'背水一戰的搶分淘汰賽與橙衣軍團的最終考驗！',
+    body:'來到小組賽最終輪，荷蘭為了力拼小組龍頭，此役勢必主導全場攻勢。橙衣軍團將端出高效率的團隊壓迫與細膩地面傳導，重壓突尼西亞禁區。突尼西亞則需要展現永不言棄的拼勁與低位密集防守，在守住對手第一波猛攻後，伺機偷襲。這場比賽的防線容錯率極低，中場球權爭奪火花四濺。',
+    key:'柯迪·賈克波 (Cody Gakpo) — 荷蘭當家主力前鋒，門前嗅覺極其敏銳且具備絕佳的突進能力，是他為球隊敲開勝利大門、鎖定晉級席次的核心箭頭。'
+  },
+  // ── Group G ──
+  'Belgium|Egypt':{
+    title:'歐洲紅魔鬼首戰強碰法老王！',
+    body:'比利時將主導球權，依賴中場大腦的精準調度與地面傳控發動攻勢，考驗埃及的防守耐性。而埃及則會採取穩健的低位密集防守，伺機利用中場攔截後的快速攻守轉換，由薩拉赫發動致命突擊。這場頂級的跨洲際風格對決，勝負全看比利時後防的補位速度與防守專注度。',
+    key:'凱文·德布勞內 (Kevin De Bruyne) — 比利時中場大師，他的精確傳導與手術刀般的致命直塞球，是球隊破密集防守的靈魂核心。'
+  },
+  'Iran|New Zealand':{
+    title:'亞洲波斯鐵騎正面迎擊奇異鳥！',
+    body:'伊朗首戰強碰大洋洲霸主紐西蘭。伊朗具備極佳的戰術素養與腳下技術，預期將主導地面傳導，利用鋒線雙子星的默契配合撕裂防線。而紐西蘭身材高大，主打強悍的力量型歐陸球風，強調邊路傳中與高空立體轟炸。這場力量與技術的對抗，二波球爭奪與定位球的防守細節將決定生死。',
+    key:'梅赫迪·塔雷米 (Mehdi Taremi) — 伊朗當家神射手，具備頂級的禁區對抗能力與敏銳的破門嗅覺，是球隊在前場攻城掠地的核心重砲。'
+  },
+  'Belgium|Iran':{
+    title:'分組賽次輪的歐亞技術流火拼！',
+    body:'比利時強碰防守頑強的波斯鐵騎。紅魔鬼勢必端出高位逼搶與流暢的地面傳控，試圖在陣地戰中尋找破綻破門。而伊朗則具備鋼鐵般的防守韌性，習慣採取低位密集防守，並利用攻守轉換發動犀利的快速反擊。比利時中後衛能否成功掐斷伊朗的反擊線路，將是本場勝負關鍵。',
+    key:'傑瑞米·多庫 (Jérémy Doku) — 比利時邊路快馬，爆發力十足，他的單兵爆破與極速突破將是撕裂伊朗密集防線的關鍵利刃。'
+  },
+  'New Zealand|Egypt':{
+    title:'攸關晉級生死的跨洲際搶分大戰！',
+    body:'紐西蘭與埃及迎來關鍵次輪對決。紐西蘭勢必主導高空球轟炸，利用身材優勢在邊路傳中與死球爭奪中施加壓力，全面考驗埃及後防的防空與補位能力。埃及則會展現腳下技術，企圖在中場二波球爭奪中勝出，並依賴薩拉赫的個人突破撕裂防線。這場矛盾對決容錯率極低。',
+    key:'克里斯·伍德 (Chris Wood) — 紐西蘭鋒線高塔，英超經驗豐富，他恐怖的高空制空權與禁區卡位，是球隊施展立體轟炸的最強武器。'
+  },
+  'Egypt|Iran':{
+    title:'命運末輪的北非與中東尊嚴決戰！',
+    body:'埃及與伊朗為了搶奪16強門票毫無保留。埃及預期將依靠薩拉赫前場的單兵爆破與兩翼內切發動猛攻，試圖敲開對手鐵壁。而伊朗防守體系極其嚴密，習慣以堅韌的低位密集防守反制，並依賴塔雷米在攻守轉換中的敏捷反擊破門。這場容錯率極低的混戰，考驗的是雙方的體能極限。',
+    key:'穆罕默德·薩拉赫 (Mohamed Salah) — 埃及超級巨星，具備無解的突破與決定比賽的能力，在生死戰中需要他發揮領袖氣質、一擊必殺。'
+  },
+  'New Zealand|Belgium':{
+    title:'小組末輪決定晉級高下的生死火拼！',
+    body:'奇異鳥紐西蘭迎戰歐洲紅魔鬼比利時。比利時為了穩鎖小組龍頭，此役勢必火力全開，利用純熟的地面傳控與高位逼搶重壓紐西蘭防線。而紐西蘭預期將利用硬朗的鐵血防守與身高優勢進行頑強抵抗，並伺機利用定位球調度發動反撲。緊湊窒息的戰術攻防博弈絕對讓球迷過癮。',
+    key:'羅梅盧·盧卡庫 (Romelu Lukaku) — 比利時鋒線重型坦克，具備摧毀性的身體對抗與禁區破壞力，將是正面抗衡紐西蘭高大後防的終極武器。'
+  },
+  // ── Group I ──
+  'France|Senegal':{
+    title:'2002年世界盃揭幕戰冷門經典重現！',
+    body:'奪冠大熱門法國首戰強碰西非雄獅塞內加爾。高盧雄雞勢必展現世界級的進攻火力，主導地面傳控並以高位逼搶向對手防線施加窒息壓力。而塞內加爾球風強悍，具備摧毀性的體能與反擊爆破速度，將採取低位密集防守、尋求攻守轉換的致命偷襲。這場矛盾對決，勝負全看法國後防補位的專注度。',
+    key:'基利安·姆巴佩 (Kylian Mbappé) — 法國隊隊長兼進攻核心，擁有無解的爆發力與單兵爆破速度，是高盧雄雞撕裂西非鐵壁、奠定勝局的最強箭頭。'
+  },
+  'Iraq|Norway':{
+    title:'中東韌性防線與北歐神鋒的力量大碰撞！',
+    body:'實力不容小覷的伊拉克，首戰強碰由天才神鋒領軍的挪威。伊拉克強調戰術紀律與流暢的地面短傳，預期將採取低位密集防守築起鋼鐵防盾；而挪威主打硬朗的歐陸力量型球風，擅長邊路傳中與高空立體轟炸。這場遭遇戰，伊拉克後防補位能否成功掐斷挪威在禁區內的制空權，將是搶分關鍵。',
+    key:'厄林·哈蘭德 (Erling Haaland) — 挪威神級前鋒，擁有摧毀性的禁區對抗能力與頂級門前破門嗅覺，是挪威制霸高空、摧毀中東鋼鐵防線的終極重砲。'
+  },
+  'France|Iraq':{
+    title:'高盧雄雞進攻海嘯與美索不達米亞雄獅的防守博弈！',
+    body:'面對實力頂尖的法國，伊拉克勢必採取極端的低位密集防守，用強悍的身體卡位阻斷地面傳導。法國則會全面主導控球權，透過中場細膩的小範圍短傳與兩翼快馬輪番衝擊，試圖在陣地戰中撕裂對手。伊拉克能否頂住這波海嘯攻勢並發動零星反擊，將是此役最大看點。',
+    key:'安托萬·格里茲曼 (Antoine Griezmann) — 法國前場戰術大腦，其出色的進攻調度能力與狹小空間內的開闊視野，是高盧雄雞打破密集防守的核心發動機。'
+  },
+  'Norway|Senegal':{
+    title:'次輪最具肉搏張力的歐非風格大碰撞！',
+    body:'挪威強碰西非雄獅塞內加爾，兩隊戰術皆極其強調硬朗的身體對抗。挪威主打簡單直接的高空立體轟炸，利用身高優勢重壓禁區；塞內加爾則兼具驚人體能與極速攻守轉換，擅長在穩固防守後利用邊路突擊破門。這場攸關出線命運的火拼，二波球的爭奪與死球防守細節將是勝負手。',
+    key:'薩迪奧·馬內 (Sadio Mané) — 塞內加爾明星前鋒兼精神領袖，大賽經驗豐富且具備極強的長途奔襲速度，是球隊在反擊中給予對手致命一擊的終極尖刀。'
+  },
+  'Iraq|Senegal':{
+    title:'攸關晉級生死的小組末輪非亞尊嚴決戰！',
+    body:'兩隊為了力拼淘汰賽門票皆毫無保留。伊拉克將展現優異的地面短傳配合，試圖建立起中場屏障；而塞內加爾則會利用驚人的身體素質實施高壓逼搶，並透過高效的攻守轉換重壓對手防線。這是一場比拼對抗強度與破門把握度的慘烈混戰，誰能減少失誤，誰就能殺出一條血路。',
+    key:'艾曼·胡笙 (Aymen Hussein) — 伊拉克當家神射手，擁有優異的身體卡位與門前破門天賦，是球隊在亂局中對抗歐非強權、尋求爆冷出線的核心關鍵。'
+  },
+  'Norway|France':{
+    title:'分組末輪火花四濺的歐洲榜首焦點火拼！',
+    body:'傳統強權法國正面對決由神鋒坐鎮的挪威。法國將端出引以為傲的細膩地面傳控與高位逼搶，試圖主導比賽的進攻節奏；而挪威則預期利用強硬的鐵血逼搶與極速快攻，破壞法國的推進節奏並施加後防壓力。這是一場決定誰能以分組龍頭挺進淘汰賽的頂級火拼，緊湊節奏絕對精采。',
+    key:'馬丁·厄德高 (Martin Ødegaard) — 挪威中場魔術師兼隊長，他的精準長傳調度與擺脫能力，是球隊抗衡法國中場壓制、為哈蘭德輸送致命反擊燃料的核心發動機。'
+  },
+  // ── Group J ──
+  'Argentina|Algeria':{
+    title:'衛冕軍藍白軍團震撼登場！',
+    body:'阿根廷首戰迎戰北非勁旅阿爾及利亞。作為衛冕冠軍，阿根廷勢必全面主導場上的地面傳控與控球權，透過中場細膩的小範圍短傳滲透重壓對手。阿爾及利亞球風強悍，具備突出的身體對抗與高空球優勢，預期將擺出低位密集防守，全力切斷阿根廷前場進攻線路，勝負取決於防線卡位與攻守轉換速度。',
+    key:'萊昂內爾·梅西 (Lionel Messi) — 阿根廷傳奇隊長，大賽經驗與門前破門嗅覺冠絕全球，他的致命直塞與創造力是瓦解北非鐵壁的終極利刃。'
+  },
+  'Austria|Jordan':{
+    title:'歐陸力量青年軍迎擊西亞歷史新勢力！',
+    body:'實力硬朗的奧地利首戰強碰首度進軍正賽的約旦。奧地利主打高效率的高位逼搶與高空立體轟炸，利用身材優勢在定位球爭奪與二波球搶斷中佔盡上風。約旦則具備不俗的腳下傳導與靈活反擊速度，勢必用鐵血堅韌的密集防守反制。兩隊中場球權的瘋狂逼搶與防守補位，將是這場遭遇戰的勝負手。',
+    key:'馬塞爾·薩比策 (Marcel Sabitzer) — 奧地利中場核心兼靈魂，擁有頂級的攔截掃蕩與後插上遠射天賦，是球隊主導攻守轉換的生命線。'
+  },
+  'Argentina|Austria':{
+    title:'次輪最受矚目的傳控大戰與硬漢逼搶火拼！',
+    body:'傳統豪強阿根廷遭遇歐陸勁旅奧地利。阿根廷將主導球權，依賴中場核心的精準調度與地面細膩傳導撕裂防線；而作風悍勇的奧地利則預期會端出窒息式的高位逼搶，試圖破壞阿根廷的推進節奏，施加防線壓力。這是一場頂級美洲技術流與歐陸力量型足球的風格博弈，勝負全看中場控制。',
+    key:'勞塔羅·馬丁尼茲 (Lautaro Martínez) — 阿根廷明星前鋒，門前嗅覺極其敏銳，在球隊高速反擊中需要他發揮強悍的禁區對抗與頂級射門把握度。'
+  },
+  'Jordan|Algeria':{
+    title:'攸關晉級生死線的西亞與北非強強決戰！',
+    body:'兩隊若想從小組賽突圍，次輪交手毫無保留空間。約旦勢必採取極端的低位密集防守，企圖依靠團隊極佳的默契卡位與堅韌防守防盾，來封鎖對方的鋒線突擊。阿爾及利亞則會利用驚人的身體爆發力與兩翼的極速衝擊，發動快速的立體轟炸破門。這是一場比拼防守抗壓與死球細節的硬仗，防線容錯率極低。',
+    key:'穆薩·阿爾-塔馬里 (Mousa Al-Tamari) — 約旦陣中唯一的頂級旅歐球星，其驚人的邊路極速奔襲與單兵爆破能力，是球隊在逆境中發動致命反擊的奇兵。'
+  },
+  'Algeria|Austria':{
+    title:'背水一戰的命運末輪搶分淘汰賽！',
+    body:'阿爾及利亞與奧地利為了搶奪16強淘汰賽席次將傾巢而出。阿爾及利亞將展現非洲球隊特有的敏捷身手與快速轉換，利用邊路推進重壓對手。奧地利防守體系嚴密，將以硬朗的鐵血逼搶與身高優勢進行全場壓迫，並伺機利用定位球調度或禁區高空球轟炸。這場比拼雙方體能極限與意志力的混戰，戰況預期激烈火爆。',
+    key:'利雅德·馬赫雷斯 (Riyad Mahrez) — 阿爾及利亞傳奇核心，具備豐富的大賽經驗與細膩的腳下盤球百變天賦，是球隊在末輪生死戰破密集防守的解套鑰匙。'
+  },
+  'Jordan|Argentina':{
+    title:'小組末輪備受矚目的出線尊嚴決戰！',
+    body:'歷史新軍約旦迎戰衛冕冠軍阿根廷。阿根廷為了確保以分組龍頭挺進，此役勢必主導全場攻勢，利用純熟的地面傳控與小範圍局部短傳配合重壓約旦禁區。約旦則需要展現永不言棄的鐵血韌性，採取極端的密集防守，在守住對手首波傳控攻勢後尋求死球偷襲。緊湊窒息的戰術博弈絕對讓球迷大呼過癮。',
+    key:'恩佐·費爾南德斯 (Enzo Fernández) — 阿根廷中場節奏大師，負責在中場梳理傳導、防止約旦反擊，並在第一線送出致命妙傳，是球隊攻守轉換的中樞。'
+  },
+  // ── Group K ──
+  'Portugal|DR Congo':{
+    title:'歐洲紅衣軍團首戰迎擊非洲鋼鐵雄獅！',
+    body:'葡萄牙由多位頂級聯賽球星坐鎮，勢必主導全場的地面傳控與高位逼搶，全面衝擊對手防線；而剛果民主共和國球員身體爆發力極佳，將採取低位密集防守，企圖在中場斷球後利用邊路發動極速反擊。葡萄牙後防能否在攻守轉換中迅速補位，將是這場跨洲際風格博弈的搶分關鍵。',
+    key:'克里斯蒂亞諾·羅納度 (Cristiano Ronaldo) — 葡萄牙傳奇隊長「C羅」，大賽經驗與門前破門嗅覺無人能敵，他的禁區制空權與射門把握度仍是球隊最致命的終結武器。'
+  },
+  'Uzbekistan|Colombia':{
+    title:'南美悍旅正面遭遇中亞技術流新勢力！',
+    body:'哥倫比亞球風狂野且強調高強度身體對抗，勢必利用兩翼快馬進行侵略性突擊，全力施加對手防線壓力；而首度打進正賽的烏茲別克具備優異的戰術紀律與細膩地面短傳配合，絕不甘示弱。這是一場講求逼搶強度與快節奏轉換的硬仗，誰能掌控中場二波球爭奪並減少失誤，誰就能搶下出線先機。',
+    key:'路易斯·迪亞斯 (Luis Díaz) — 哥倫比亞邊路尖刀，具備恐怖的長途奔襲速度與單兵爆破能力，是他為球隊敲開勝利大門、撕裂中亞鐵壁的核心箭頭。'
+  },
+  'Portugal|Uzbekistan':{
+    title:'小組末輪決定分組龍頭與晉級命運的命運之戰！',
+    body:'葡萄牙為了穩鎖淘汰賽席次，此役勢必火力全開，利用純熟的地面傳控與高位逼搶重壓烏茲別克防線，考驗對手的防守耐性。而烏茲別克預期將採取極端的低位密集防守進行頑強抵抗，在守住首波傳控攻勢後，伺機利用死球戰術調度反撲。這場歐洲頂級豪門與亞洲新貴的戰術攻防博弈絕對讓球迷大呼過癮。',
+    key:'貝納多·席爾瓦 (Bernardo Silva) — 葡萄牙前場魔術師，其細膩的腳下技術與狹小空間內的控球百變天賦，是球隊在面對中亞密集防守時，在第一線送出致命妙傳的解套鑰匙。'
+  },
+  'Colombia|DR Congo':{
+    title:'小組末輪背水一戰的搶分淘汰賽！',
+    body:'剛果民主共和國充滿爆發力的邊路突擊與神祕靈性，將正面衝擊南美悍旅哥倫比亞傲人的團隊韌性與鐵血拼勁。在球員體能達到極限的末輪決戰中，這是一場純粹的意志力大比拼。誰能在中場亂局中展現更審慎的防守攔截，並把握住反擊中的臨門一腳破門，誰就能在局勢混沌的K組中殺出一條血路。',
+    key:'哈梅斯·羅德里奎茲 (James Rodríguez) — 哥倫比亞傳奇核心，其大賽經驗、開闊的傳球視野與出色的定位球調度，是球隊在末輪生死戰中尋求出線與打破僵局的關鍵中樞。'
+  },
+  'Colombia|Portugal':{
+    title:'分組賽次輪最受矚目的美歐傳統強權焦點火拼！',
+    body:'葡萄牙將端出引以為傲的流暢地面傳導與局部小範圍配合，試圖主導進攻節奏並在陣地戰中尋找破綻破門；而作風剽悍的哥倫比亞則預期會展開窒息式的高壓逼搶與鐵血肉搏，全力破壞葡萄牙的推進節奏。這是一場頂級技術流與南美狂野硬漢的攻防大戰，緊湊窒息的風格博弈絕對精采。',
+    key:'布魯諾·費南德斯 (Bruno Fernandes) — 葡萄牙中場指揮官，他的開闊傳球視野與精準的手術刀致命直塞，是球隊在面對南美高壓逼搶時，梳理節奏的靈魂核心。'
+  },
+  'DR Congo|Uzbekistan':{
+    title:'攸關晉級命運的跨洲際搶分生死決戰！',
+    body:'烏茲別克與剛果民主共和國迎來關鍵交手，兩隊為了力拼淘汰賽門票皆毫無保留。烏茲別克將主導場上控球，利用細膩的腳下傳導企圖撕開對手防線；而剛果民主共和國則會依賴摧毀性的身體素質實施全場壓迫，並利用攻守轉換中的極速反擊尋求破門。這是一場比拼體能極限與射門把握度的肉搏混戰，容錯率極低。',
+    key:'艾爾多爾·蕭穆羅多夫 (Eldor Shomurodov) — 烏茲別克隊長兼鋒線高塔，具備優異的禁區卡位與破門天賦，是球隊在亂局中對抗非洲鋼鐵肌肉群、尋求隊史正賽首勝的核心關鍵。'
+  },
+  // ── Group L ──
+  'England|Croatia':{
+    title:'奪冠大熱門三獅軍團英格蘭首戰強碰格子軍團！',
+    body:'英格蘭陣容星光熠熠，勢必主導全場的地面傳控與高位逼搶，利用兩翼的極速突破重壓對手防線。克羅埃西亞則以老道的大賽經驗反制，透過細膩的地面短傳試圖掌控進攻節奏。這是一場速度風暴與大師級傳控的頂級攻防大戰，緊湊窒息的戰術博弈絕對讓球迷大呼過癮。',
+    key:'裘德·貝林漢姆 (Jude Bellingham) — 英格蘭中場超新星，具備頂級的插上進攻意識與門前終結能力，是球隊在陣地戰中打破僵局、撕裂對手防線的核心利刃。'
+  },
+  'Ghana|Panama':{
+    title:'攸關晉級命運的跨洲際搶分生死決戰！',
+    body:'迦納與巴拿馬在次輪狹路相逢，兩隊為了力拼淘汰賽門票皆毫無保留。迦納預期將利用驚人的身體爆發力實施全場壓迫，並透過兩翼極速反擊破門；巴拿馬則會展現典型的鐵血作風，採取強硬的身體肉搏與低位密集防守頑抗。這是一場比拼體能極限與死球細節的硬仗，防線容錯率極低。',
+    key:'穆罕默德·庫杜斯 (Mohammed Kudus) — 迦納前場核心，具備突出的單兵爆破與極速盤球擺脫能力，是球隊在亂局中撕裂巴拿馬鐵血防盾的核心尖刀。'
+  },
+  'England|Ghana':{
+    title:'小組末輪決定分組龍頭與晉級命運的關鍵火拼！',
+    body:'三獅軍團英格蘭為了穩鎖淘汰賽席次，此役勢必火力全開，利用純熟的地面傳控與高位逼搶重壓迦納防線。而非洲黑星迦納預期將利用硬朗的鐵血防守與摧毀性的身體素質進行全場壓迫，並利用攻守轉換中的極速反擊施加壓力。緊湊窒息的英非風格碰撞，絕對精彩。',
+    key:'布卡約·薩卡 (Bukayo Saka) — 英格蘭右翼尖刀，擁有恐怖的邊路爆發力與單兵內切射門把握度，是球隊在末輪決戰中突破非洲肌肉防線的終極利刃。'
+  },
+  'Panama|Croatia':{
+    title:'小組末輪背水一戰的搶分淘汰賽！',
+    body:'中北美悍將巴拿馬勢必全力主導強硬的身體對抗，採取極端的密集防守策略，重壓克羅埃西亞禁區，伺機利用定位球調度或反擊偷襲。克羅埃西亞則需發揮靈活的小範圍配合與絕佳的默契，依靠細膩的地面傳導與耐心滲透尋求破門。這場容錯率極低的生死戰，考驗的是雙方的意志力極限。',
+    key:'約什科·格瓦迪奧爾 (Joško Gvardiol) — 克羅埃西亞明星後衛，防守意識頂級且兼具大範圍掃蕩能力，是球隊對抗巴拿馬強悍衝擊、穩固後防的鋼鐵巨盾。'
+  },
+  'Panama|England':{
+    title:'奪冠大熱門三獅軍團英格蘭迎擊中北美悍旅！',
+    body:'英格蘭陣容星光熠熠，勢必主導全場的地面傳控與高位逼搶，利用兩翼的極速突破重壓對手防線。而巴拿馬作風悍勇，具備突出的身體對抗，預期將擺出低位密集防守，全力切斷英格蘭前場的進攻線路。這場風格博弈，勝負全看巴拿馬後防能否扛住對手排山倒海的進攻攻勢。',
+    key:'哈里·凱恩 (Harry Kane) — 英格蘭功勳隊長兼神射手，具備頂級的禁區卡位與射門把握度，他的回撤接應與破門能力是三獅軍團取勝的最強箭頭。'
+  },
+  'Croatia|Ghana':{
+    title:'格子軍團克羅埃西亞首戰正面交鋒非洲黑星迦納！',
+    body:'克羅埃西亞主打純熟的歐陸技術流傳控，依賴大師級的中場調度來主導進攻節奏；而迦納則具備非洲球隊摧毀性的身體爆發力與極速攻守轉換。這是一場頂級中場控制力與非洲速度風暴的矛盾對決，雙方在中場二波球爭奪與定位球防守細節的掌控，將是這場遭遇戰的關鍵勝負手。',
+    key:'盧卡·莫德里奇 (Luka Modrić) — 克羅埃西亞傳奇隊長，大賽經驗豐富且具備無解的傳球視野，是球隊在中場對抗非洲鋼鐵肌肉群、梳理節奏的靈魂大腦。'
+  },
+  // ── Group H ──
+  'Spain|Cape Verde':{
+    title:'無敵艦隊首戰強碰西非藍鯊！',
+    body:'西班牙將全面主導招牌的地面傳控足球，透過中場細膩傳導與高位逼搶全面壓制對手。而退無可退的維德角預期將採取極端的低位密集防守，依靠強硬的身體卡位阻斷傳球線路，並伺機利用定位球調度爆冷。這是一場極致傳控與堅韌防盾的風格博弈，防線容錯率極低。',
+    key:'拉明·亞馬爾 (Lamine Yamal) — 西班牙天才翼鋒，具備無解的單兵爆破與極速內切射門能力，是球隊在陣地戰中撕裂密集防線的最強利刃。'
+  },
+  'Saudi Arabia|Uruguay':{
+    title:'西亞綠鷹首戰強碰南美天藍軍團！',
+    body:'烏拉圭承襲傳統的鐵血拼勁與高效攻守轉換，戰術強調硬朗的身體對抗與快速前插，試圖用快節奏的立體轟炸重壓對手防線。沙烏地阿拉伯則採取低位密集防守，展現優異的整體戰術素養，利用中場防守攔截與靈活的地面短傳反制。這場搶分大戰，定位球防守細節將成為決定性的勝負手。',
+    key:'達爾文·努涅斯 (Darwin Núñez) — 烏拉圭鋒線尖刀，擁有恐怖的長途奔襲速度與極強的衝擊力，是球隊在反擊中給予對手致命一擊的終極重砲。'
+  },
+  'Spain|Saudi Arabia':{
+    title:'無敵艦隊次輪迎戰西亞綠鷹！',
+    body:'西班牙勢必延續極致的地面傳導與局部小範圍配合，試圖用密不透風的控球率窒息對手並尋找破門破綻。沙烏地阿拉伯則將重現鐵血防守紀律，採取低位密集防守並在攻守轉換中尋求極速反擊。這是一場極致傳控與堅韌防盾的風格博弈，勝負全看沙烏地防線能否扛住西班牙兩翼的瘋狂撕裂。',
+    key:'羅德里 (Rodri) — 西班牙中場核心兼節奏大師，負責在中場梳理傳控節奏並抵擋對手反擊，是球隊攻守連繫與攔截的第一道鋼鐵防線。'
+  },
+  'Uruguay|Cape Verde':{
+    title:'南美天藍軍團遭遇非洲藍鯊的關鍵火拼！',
+    body:'烏拉圭講求全場不知疲倦的高壓逼搶與強硬的肉搏對抗，試圖用快節奏的立體轟炸重壓對手防線。維德角球員身體爆發力出眾，擅長利用中場攔截後的極速快攻，具備黑馬拼勁。這場攸關晉級走勢的搶分大戰，定位球防守細節將成為決定性的勝負手。',
+    key:'費德里科·巴爾韋德 (Federico Valverde) — 烏拉圭中場核心兼隊長，擁有世界級的奔跑覆蓋率與後插上遠射天賦，是球隊攻守轉換與破密防的最強發動機。'
+  },
+  'Cape Verde|Saudi Arabia':{
+    title:'攸關晉級生死的非亞尊嚴出線決戰！',
+    body:'小組賽末輪交手，兩隊為了力拼淘汰賽門票皆毫無保留。沙烏地阿拉伯預期將主導地面傳導，利用流暢的小範圍短傳與邊路切入發動猛攻。而維德角防守強悍且具備黑馬拼勁，勢必利用摧毀性的身體素質進行全場壓迫，並利用攻守轉換中的極速反擊偷襲。這場容錯率極低的混戰，比拼的是雙方的意志力極限。',
+    key:'薩利姆·多薩里 (Salem Al-Dawsari) — 沙烏地阿拉伯靈魂核心，具備絕佳的盤球擺脫與極強的門前終結能力，是球隊在末輪生死戰中尋求出線與打破僵局的關鍵奇兵。'
+  },
+  'Uruguay|Spain':{
+    title:'分組末輪最具張力的榜首焦點強強對決！',
+    body:'南美傳統強權烏拉圭正面火拼無敵艦隊西班牙。西班牙將端出引以為傲的細膩傳控與高位逼搶，試圖掌控比賽進攻節奏；而烏拉圭預期將利用硬朗的鐵血逼搶與高效的攻守轉換，破壞西班牙的地面傳導並施加後防壓力。這是一場決定誰能以分組龍頭之姿挺進淘汰賽的頂級火拼，緊湊節奏絕對精彩。',
+    key:'佩德里 (Pedri) — 西班牙中場魔術師，其細膩的腳下技術與狹小空間內的開闊傳球視野，將是球隊對抗烏拉圭鐵血逼搶、為鋒線輸送反擊燃料的核心發動機。'
+  },
+};
+
+function getGuide(t1,t2){
+  return GUIDES[`${t1}|${t2}`] || GUIDES[`${t2}|${t1}`] || null;
+}
+
+const matches=[
+  {g:'A',t1:'Mexico',t2:'South Africa',cest:'2026-06-11T21:00',venue:'Estadio Azteca, Mexico City'},
+  {g:'A',t1:'South Korea',t2:'Czechia',cest:'2026-06-12T04:00',venue:'Akron Stadium, Guadalajara'},
+  {g:'B',t1:'Canada',t2:'Bosnia & Herzegovina',cest:'2026-06-12T21:00',venue:'BMO Field, Toronto'},
+  {g:'D',t1:'USA',t2:'Paraguay',cest:'2026-06-13T02:00',venue:'SoFi Stadium, Los Angeles'},
+  {g:'B',t1:'Qatar',t2:'Switzerland',cest:'2026-06-13T21:00',venue:"Levi's Stadium, San Francisco Bay Area"},
+  {g:'C',t1:'Brazil',t2:'Morocco',cest:'2026-06-14T00:00',venue:'MetLife Stadium, New York/New Jersey'},
+  {g:'C',t1:'Haiti',t2:'Scotland',cest:'2026-06-14T03:00',venue:'Gillette Stadium, Boston'},
+  {g:'D',t1:'Australia',t2:'Turkey',cest:'2026-06-14T06:00',venue:'BC Place, Vancouver'},
+  {g:'E',t1:'Germany',t2:'Curaçao',cest:'2026-06-14T19:00',venue:'NRG Stadium, Houston'},
+  {g:'F',t1:'Netherlands',t2:'Japan',cest:'2026-06-14T22:00',venue:'AT&T Stadium, Dallas'},
+  {g:'E',t1:'Ivory Coast',t2:'Ecuador',cest:'2026-06-15T01:00',venue:'Lincoln Financial Field, Philadelphia'},
+  {g:'F',t1:'Sweden',t2:'Tunisia',cest:'2026-06-15T04:00',venue:'Estadio BBVA, Monterrey'},
+  {g:'H',t1:'Spain',t2:'Cape Verde',cest:'2026-06-15T18:00',venue:'Mercedes-Benz Stadium, Atlanta'},
+  {g:'G',t1:'Belgium',t2:'Egypt',cest:'2026-06-15T21:00',venue:'Lumen Field, Seattle'},
+  {g:'H',t1:'Saudi Arabia',t2:'Uruguay',cest:'2026-06-16T00:00',venue:'Hard Rock Stadium, Miami'},
+  {g:'G',t1:'Iran',t2:'New Zealand',cest:'2026-06-16T03:00',venue:'SoFi Stadium, Los Angeles'},
+  {g:'I',t1:'France',t2:'Senegal',cest:'2026-06-16T21:00',venue:'MetLife Stadium, New York/New Jersey'},
+  {g:'I',t1:'Iraq',t2:'Norway',cest:'2026-06-17T00:00',venue:'Gillette Stadium, Boston'},
+  {g:'J',t1:'Argentina',t2:'Algeria',cest:'2026-06-17T03:00',venue:'Arrowhead Stadium, Kansas City'},
+  {g:'J',t1:'Austria',t2:'Jordan',cest:'2026-06-17T06:00',venue:"Levi's Stadium, San Francisco Bay Area"},
+  {g:'K',t1:'Portugal',t2:'DR Congo',cest:'2026-06-17T19:00',venue:'NRG Stadium, Houston'},
+  {g:'L',t1:'England',t2:'Croatia',cest:'2026-06-17T22:00',venue:'AT&T Stadium, Dallas'},
+  {g:'L',t1:'Ghana',t2:'Panama',cest:'2026-06-18T01:00',venue:'BMO Field, Toronto'},
+  {g:'K',t1:'Uzbekistan',t2:'Colombia',cest:'2026-06-18T04:00',venue:'Estadio Azteca, Mexico City'},
+  {g:'A',t1:'Czechia',t2:'South Africa',cest:'2026-06-18T18:00',venue:'Mercedes-Benz Stadium, Atlanta'},
+  {g:'B',t1:'Switzerland',t2:'Bosnia & Herzegovina',cest:'2026-06-18T21:00',venue:'SoFi Stadium, Los Angeles'},
+  {g:'B',t1:'Canada',t2:'Qatar',cest:'2026-06-19T00:00',venue:'BC Place, Vancouver'},
+  {g:'A',t1:'Mexico',t2:'South Korea',cest:'2026-06-19T03:00',venue:'Akron Stadium, Guadalajara'},
+  {g:'D',t1:'USA',t2:'Australia',cest:'2026-06-19T21:00',venue:'Lumen Field, Seattle'},
+  {g:'C',t1:'Scotland',t2:'Morocco',cest:'2026-06-20T00:00',venue:'Gillette Stadium, Boston'},
+  {g:'C',t1:'Brazil',t2:'Haiti',cest:'2026-06-20T03:00',venue:'Lincoln Financial Field, Philadelphia'},
+  {g:'D',t1:'Turkey',t2:'Paraguay',cest:'2026-06-20T06:00',venue:"Levi's Stadium, San Francisco Bay Area"},
+  {g:'F',t1:'Netherlands',t2:'Sweden',cest:'2026-06-20T19:00',venue:'NRG Stadium, Houston'},
+  {g:'E',t1:'Germany',t2:'Ivory Coast',cest:'2026-06-20T22:00',venue:'BMO Field, Toronto'},
+  {g:'E',t1:'Ecuador',t2:'Curaçao',cest:'2026-06-21T02:00',venue:'Arrowhead Stadium, Kansas City'},
+  {g:'F',t1:'Tunisia',t2:'Japan',cest:'2026-06-21T06:00',venue:'Estadio BBVA, Monterrey'},
+  {g:'H',t1:'Spain',t2:'Saudi Arabia',cest:'2026-06-21T18:00',venue:'Mercedes-Benz Stadium, Atlanta'},
+  {g:'G',t1:'Belgium',t2:'Iran',cest:'2026-06-21T21:00',venue:'SoFi Stadium, Los Angeles'},
+  {g:'H',t1:'Uruguay',t2:'Cape Verde',cest:'2026-06-22T00:00',venue:'Hard Rock Stadium, Miami'},
+  {g:'G',t1:'New Zealand',t2:'Egypt',cest:'2026-06-22T03:00',venue:'BC Place, Vancouver'},
+  {g:'J',t1:'Argentina',t2:'Austria',cest:'2026-06-22T19:00',venue:'AT&T Stadium, Dallas'},
+  {g:'I',t1:'France',t2:'Iraq',cest:'2026-06-22T23:00',venue:'Lincoln Financial Field, Philadelphia'},
+  {g:'I',t1:'Norway',t2:'Senegal',cest:'2026-06-23T02:00',venue:'BMO Field, Toronto'},
+  {g:'J',t1:'Jordan',t2:'Algeria',cest:'2026-06-23T05:00',venue:"Levi's Stadium, San Francisco Bay Area"},
+  {g:'K',t1:'Portugal',t2:'Uzbekistan',cest:'2026-06-23T19:00',venue:'NRG Stadium, Houston'},
+  {g:'L',t1:'England',t2:'Ghana',cest:'2026-06-23T22:00',venue:'Gillette Stadium, Boston'},
+  {g:'L',t1:'Panama',t2:'Croatia',cest:'2026-06-24T01:00',venue:'Gillette Stadium, Boston'},
+  {g:'K',t1:'Colombia',t2:'DR Congo',cest:'2026-06-24T04:00',venue:'Akron Stadium, Guadalajara'},
+  {g:'B',t1:'Switzerland',t2:'Canada',cest:'2026-06-24T21:00',venue:'BC Place, Vancouver'},
+  {g:'B',t1:'Bosnia & Herzegovina',t2:'Qatar',cest:'2026-06-24T21:00',venue:'Lumen Field, Seattle'},
+  {g:'C',t1:'Morocco',t2:'Haiti',cest:'2026-06-25T00:00',venue:'Mercedes-Benz Stadium, Atlanta'},
+  {g:'C',t1:'Scotland',t2:'Brazil',cest:'2026-06-25T00:00',venue:'Hard Rock Stadium, Miami'},
+  {g:'A',t1:'Czechia',t2:'Mexico',cest:'2026-06-25T03:00',venue:'Estadio Azteca, Mexico City'},
+  {g:'A',t1:'South Africa',t2:'South Korea',cest:'2026-06-25T03:00',venue:'Estadio BBVA, Monterrey'},
+  {g:'E',t1:'Curaçao',t2:'Ivory Coast',cest:'2026-06-25T22:00',venue:'Lincoln Financial Field, Philadelphia'},
+  {g:'E',t1:'Ecuador',t2:'Germany',cest:'2026-06-25T22:00',venue:'MetLife Stadium, New York/New Jersey'},
+  {g:'F',t1:'Japan',t2:'Sweden',cest:'2026-06-26T01:00',venue:'AT&T Stadium, Dallas'},
+  {g:'F',t1:'Tunisia',t2:'Netherlands',cest:'2026-06-26T01:00',venue:'Arrowhead Stadium, Kansas City'},
+  {g:'D',t1:'Turkey',t2:'USA',cest:'2026-06-26T04:00',venue:'SoFi Stadium, Los Angeles'},
+  {g:'D',t1:'Paraguay',t2:'Australia',cest:'2026-06-26T04:00',venue:"Levi's Stadium, San Francisco Bay Area"},
+  {g:'I',t1:'Norway',t2:'France',cest:'2026-06-26T21:00',venue:'Gillette Stadium, Boston'},
+  {g:'I',t1:'Senegal',t2:'Iraq',cest:'2026-06-26T21:00',venue:'BMO Field, Toronto'},
+  {g:'H',t1:'Cape Verde',t2:'Saudi Arabia',cest:'2026-06-27T02:00',venue:'NRG Stadium, Houston'},
+  {g:'H',t1:'Uruguay',t2:'Spain',cest:'2026-06-27T02:00',venue:'Akron Stadium, Guadalajara'},
+  {g:'G',t1:'New Zealand',t2:'Belgium',cest:'2026-06-27T05:00',venue:'BC Place, Vancouver'},
+  {g:'G',t1:'Egypt',t2:'Iran',cest:'2026-06-27T05:00',venue:'Lumen Field, Seattle'},
+  {g:'L',t1:'Panama',t2:'England',cest:'2026-06-27T23:00',venue:'MetLife Stadium, New York/New Jersey'},
+  {g:'L',t1:'Croatia',t2:'Ghana',cest:'2026-06-27T23:00',venue:'Lincoln Financial Field, Philadelphia'},
+  {g:'K',t1:'Colombia',t2:'Portugal',cest:'2026-06-28T01:30',venue:'Hard Rock Stadium, Miami'},
+  {g:'K',t1:'DR Congo',t2:'Uzbekistan',cest:'2026-06-28T01:30',venue:'Mercedes-Benz Stadium, Atlanta'},
+  {g:'J',t1:'Algeria',t2:'Austria',cest:'2026-06-28T04:00',venue:'Arrowhead Stadium, Kansas City'},
+  {g:'J',t1:'Jordan',t2:'Argentina',cest:'2026-06-28T04:00',venue:'AT&T Stadium, Dallas'},
+];
+
+function cestToTW(s){return new Date(s+':00+02:00')}
+function fmtDate(d){return d.toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei',month:'long',day:'numeric',weekday:'short'})}
+function fmtTime(d){return d.toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hour12:false})}
+function fmtDay(d){return d.toLocaleDateString('zh-TW',{timeZone:'Asia/Taipei'})}
+
+const processed=matches.map((m,i)=>{
+  const tw=cestToTW(m.cest);
+  const c1=COUNTRIES[m.t1]||{zh:m.t1,code:'un'};
+  const c2=COUNTRIES[m.t2]||{zh:m.t2,code:'un'};
+  return{...m,id:i,tw,twDate:fmtDate(tw),twTime:fmtTime(tw),twDay:fmtDay(tw),c1,c2};
+});
+const dayMap={};
+processed.forEach(m=>{
+  if(!dayMap[m.twDay])dayMap[m.twDay]={label:m.twDate,matches:[]};
+  dayMap[m.twDay].matches.push(m);
+});
+const days=Object.keys(dayMap).sort();
+let activeGroup='ALL',venueVal='',dateVal='',teamVal='';
+
+const vs=document.getElementById('venueFilter');
+[...new Set(processed.map(m=>m.venue))].sort().forEach(v=>{
+  const o=document.createElement('option');o.value=v;o.textContent=v;vs.appendChild(o);
+});
+const ds=document.getElementById('dateFilter');
+days.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=dayMap[d].label;ds.appendChild(o);});
+
+const gb=document.getElementById('groupBtns');
+const allB=document.createElement('button');
+allB.className='gbtn all-btn active';allB.dataset.g='ALL';allB.textContent='全部小組';gb.appendChild(allB);
+'ABCDEFGHIJKL'.split('').forEach(g=>{
+  const t=GT[g];const btn=document.createElement('button');btn.className='gbtn';btn.dataset.g=g;
+  btn.textContent='Group '+g;btn.style.cssText=`background:${t.bg};color:${t.bdr};border-color:${t.bdr}`;
+  gb.appendChild(btn);
+});
+function updateBtns(){
+  document.querySelectorAll('.gbtn').forEach(btn=>{
+    const g=btn.dataset.g;
+    if(g==='ALL'){btn.className='gbtn all-btn'+(g===activeGroup?' active':'');btn.style.cssText='';}
+    else{const t=GT[g];btn.style.cssText=g===activeGroup
+      ?`background:${t.bdr};color:#fff;border-color:${t.bdr}`
+      :`background:${t.bg};color:${t.bdr};border-color:${t.bdr}`;}
+  });
+}
+gb.addEventListener('click',e=>{const btn=e.target.closest('.gbtn');if(!btn)return;activeGroup=btn.dataset.g;updateBtns();render();});
+document.getElementById('venueFilter').addEventListener('change',e=>{venueVal=e.target.value;render();});
+document.getElementById('dateFilter').addEventListener('change',e=>{dateVal=e.target.value;render();});
+document.getElementById('teamSearch').addEventListener('input',e=>{teamVal=e.target.value.trim().toLowerCase();render();});
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  activeGroup='ALL';venueVal='';dateVal='';teamVal='';
+  document.getElementById('teamSearch').value='';
+  document.getElementById('venueFilter').value='';
+  document.getElementById('dateFilter').value='';
+  updateBtns();render();
+});
+
+// ══ Pin highlight — no connector line, just pulse on hover ═══════════════════
+let activeVn=null;
+
+function showHighlight(venue){
+  if(activeVn && activeVn!==venue) deactivatePin(activeVn);
+  activatePin(venue, CCOL[VENUES[venue]?.c] || '#fff');
+  activeVn=venue;
+  showVenueInfo(venue);
+}
+function hideHighlight(){
+  if(activeVn){ deactivatePin(activeVn); activeVn=null; }
+}
+
+// ══ Render ══════════════════════════════════════════════════════════════════
+function teamHTML(en,c){
+  return`<div class="team-row">
+    <img class="flag-img" src="https://flagcdn.com/32x24/${c.code}.png" alt="${c.zh}" onerror="this.style.display='none'">
+    <div class="team-names"><span class="team-zh">${c.zh}</span><span class="team-en">${en}</span></div>
+  </div>`;
+}
+function render(){
+  const list=document.getElementById('matchList');
+  const countEl=document.getElementById('matchCount');
+  list.innerHTML='';hideHighlight();
+  let total=0;
+  days.forEach(day=>{
+    const dm=dayMap[day].matches.filter(m=>{
+      if(activeGroup!=='ALL'&&m.g!==activeGroup)return false;
+      if(venueVal&&m.venue!==venueVal)return false;
+      if(dateVal&&m.twDay!==dateVal)return false;
+      if(teamVal){const q=teamVal;
+        if(!m.t1.toLowerCase().includes(q)&&!m.t2.toLowerCase().includes(q)
+          &&!m.c1.zh.includes(q)&&!m.c2.zh.includes(q))return false;}
+      return true;
+    });
+    if(!dm.length)return;
+    total+=dm.length;
+    const hdr=document.createElement('div');hdr.className='day-hdr';
+    hdr.textContent=dayMap[day].label;list.appendChild(hdr);
+    dm.forEach(m=>{
+      const t=GT[m.g];
+      const guide=getGuide(m.t1,m.t2);
+      const card=document.createElement('div');card.className='card';
+      card.style.cssText=`background:${t.bg};border-color:${t.bdr};border-left:5px solid ${t.bdr}`;
+      card.innerHTML=`
+        <div class="card-main">
+          <div class="grp-badge" style="background:${t.bbg};align-self:start;margin-top:2px">
+            <div class="grp-word" style="color:${t.btxt}">GROUP</div>
+            <div class="grp-letter" style="color:${t.btxt}">${m.g}</div>
+          </div>
+          <div>
+            ${teamHTML(m.t1,m.c1)}
+            <div class="vs-sep">vs</div>
+            ${teamHTML(m.t2,m.c2)}
+            <div class="venue-row"><span style="font-size:9px">📍</span>
+              <span class="venue-txt">${m.venue}</span></div>
+          </div>
+          <div>${guide?`
+            <div class="guide-inline-title">🔥 ${guide.title}</div>
+            <div class="guide-inline-body">${guide.body}</div>
+            <div class="guide-inline-key" style="border-color:${t.bdr}">
+              <div class="guide-inline-key-lbl" style="color:${t.bdr}">⭐ 關鍵球員</div>
+              ${guide.key}
+            </div>`:''}
+          </div>
+          <div class="time-col">
+            <div class="kick-time" style="color:${t.bdr}">${m.twTime}</div>
+            <div class="kick-date">${m.twDate}</div>
+          </div>
+        </div>`;
+
+      card.addEventListener('mouseenter',()=>{
+        card.style.outline=`2px solid ${t.bdr}`;
+        showHighlight(m.venue);
+      });
+      card.addEventListener('mouseleave',()=>{card.style.outline='none';hideHighlight();});
+      list.appendChild(card);
+    });
+  });
+  countEl.textContent=total?`顯示 ${total} 場賽事（共 72 場）`:'沒有符合條件的賽事';
+  if(!total){const e=document.createElement('div');e.className='empty-state';
+    e.textContent='🔍 找不到符合條件的賽事';list.appendChild(e);}
+}
+render();
+
+// ══ Tab switching ══════════════════════════════════════════════════════════════
+function switchTab(tab){
+  const isGroup=tab==='group';
+  document.getElementById('panelGroup').style.display=isGroup?'flex':'none';
+  document.getElementById('panelKO').style.display=isGroup?'none':'flex';
+  document.getElementById('tabGroup').classList.toggle('active',isGroup);
+  document.getElementById('tabKO').classList.toggle('active',!isGroup);
+  if(!isGroup) renderKO();
+}
+
+// ══ Knockout bracket ══════════════════════════════════════════════════════════
+function tbd(desc){return{name:desc,code:'',tbd:true}}
+
+const KO_ROUNDS=[
+  // R32: 16 matches (M73-M88), display order arranged so bracket pairs are adjacent
+  // Pair→R16: (M73,M75)→M90, (M74,M77)→M89, (M76,M78)→M91, (M79,M80)→M92
+  //           (M83,M84)→M93, (M81,M82)→M94, (M86,M88)→M95, (M85,M87)→M96
+  {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
+    {id:'M73',date:'6/28 週日',time:'04:00',home:tbd('A2'),away:tbd('B2'),venue:'SoFi Stadium'},
+    {id:'M75',date:'6/29 週一',time:'10:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
+    {id:'M74',date:'6/29 週一',time:'05:30',home:tbd('E1'),away:tbd('最佳第3 C'),venue:'Gillette Stadium'},
+    {id:'M77',date:'6/30 週二',time:'06:00',home:tbd('I1'),away:tbd('最佳第3 G'),venue:'MetLife Stadium'},
+    {id:'M76',date:'6/29 週一',time:'02:00',home:tbd('C1'),away:tbd('F2'),venue:'NRG Stadium'},
+    {id:'M78',date:'6/30 週二',time:'02:00',home:tbd('E2'),away:tbd('I2'),venue:'AT&T Stadium'},
+    {id:'M79',date:'6/30 週二',time:'10:00',home:tbd('A1'),away:tbd('最佳第3 H'),venue:'Estadio Azteca'},
+    {id:'M80',date:'7/01 週三',time:'01:00',home:tbd('L1'),away:tbd('最佳第3 E'),venue:'Mercedes-Benz Stadium'},
+    {id:'M83',date:'7/02 週四',time:'08:00',home:tbd('K2'),away:tbd('L2'),venue:'BMO Field'},
+    {id:'M84',date:'7/02 週四',time:'04:00',home:tbd('H1'),away:tbd('J2'),venue:'SoFi Stadium'},
+    {id:'M81',date:'7/01 週三',time:'09:00',home:tbd('D1'),away:tbd('最佳第3 B'),venue:"Levi's Stadium"},
+    {id:'M82',date:'7/01 週三',time:'05:00',home:tbd('G1'),away:tbd('最佳第3 A'),venue:'Lumen Field'},
+    {id:'M86',date:'7/03 週五',time:'07:00',home:tbd('J1'),away:tbd('H2'),venue:'Hard Rock Stadium'},
+    {id:'M88',date:'7/03 週五',time:'03:00',home:tbd('D2'),away:tbd('G2'),venue:'AT&T Stadium'},
+    {id:'M85',date:'7/03 週五',time:'00:00',home:tbd('B1'),away:tbd('最佳第3 F'),venue:'BC Place'},
+    {id:'M87',date:'7/03 週五',time:'10:30',home:tbd('K1'),away:tbd('最佳第3 D'),venue:'Arrowhead Stadium'},
+  ]},
+  // R16: display order matches R32 bracket pairs (M90,M89,M91,M92,M93,M94,M95,M96)
+  // QF pairs: (M90,M89)→M97, (M91,M92)→M99, (M93,M94)→M98, (M95,M96)→M100
+  {label:'16強 Round of 16',shortLabel:'Round of 16',cols:2,matches:[
+    {id:'M90',date:'7/05 週六',time:'02:00',home:tbd('W73'),away:tbd('W75'),venue:'NRG Stadium'},
+    {id:'M89',date:'7/05 週六',time:'06:00',home:tbd('W74'),away:tbd('W77'),venue:'Lincoln Financial Field'},
+    {id:'M91',date:'7/06 週日',time:'05:00',home:tbd('W76'),away:tbd('W78'),venue:'MetLife Stadium'},
+    {id:'M92',date:'7/06 週日',time:'09:00',home:tbd('W79'),away:tbd('W80'),venue:'Estadio Azteca'},
+    {id:'M93',date:'7/07 週一',time:'04:00',home:tbd('W83'),away:tbd('W84'),venue:'AT&T Stadium'},
+    {id:'M94',date:'7/07 週一',time:'09:00',home:tbd('W81'),away:tbd('W82'),venue:'Lumen Field'},
+    {id:'M95',date:'7/08 週二',time:'01:00',home:tbd('W86'),away:tbd('W88'),venue:'Mercedes-Benz Stadium'},
+    {id:'M96',date:'7/08 週二',time:'05:00',home:tbd('W85'),away:tbd('W87'),venue:'BC Place'},
+  ]},
+  // QF: display order (M97,M99,M98,M100) so SF pairs are adjacent
+  // SF pairs: (M97,M98)→M101, (M99,M100)→M102
+  {label:'準決賽 Quarter-finals',shortLabel:'Quarter-final',cols:2,matches:[
+    {id:'M97',date:'7/10 週四',time:'05:00',home:tbd('W89'),away:tbd('W90'),venue:'Gillette Stadium'},
+    {id:'M98',date:'7/11 週五',time:'04:00',home:tbd('W93'),away:tbd('W94'),venue:'SoFi Stadium'},
+    {id:'M99',date:'7/12 週六',time:'06:00',home:tbd('W91'),away:tbd('W92'),venue:'Hard Rock Stadium'},
+    {id:'M100',date:'7/12 週六',time:'10:00',home:tbd('W95'),away:tbd('W96'),venue:'Arrowhead Stadium'},
+  ]},
+  // SF
+  {label:'四強 Semi-finals',shortLabel:'Semi-final',cols:2,matches:[
+    {id:'M101',date:'7/15 週二',time:'04:00',home:tbd('W97'),away:tbd('W98'),venue:'AT&T Stadium'},
+    {id:'M102',date:'7/16 週三',time:'04:00',home:tbd('W99'),away:tbd('W100'),venue:'Mercedes-Benz Stadium'},
+  ]},
+  // Third-place
+  {label:'季軍賽',shortLabel:'Third-place',cols:1,matches:[
+    {id:'M103',date:'7/19 週六',time:'06:00',home:tbd('M101落敗者'),away:tbd('M102落敗者'),venue:'Hard Rock Stadium',isThird:true},
+  ]},
+  // Final
+  {label:'決賽 Final 🏆',shortLabel:'Final 🏆',cols:1,matches:[
+    {id:'M104',date:'7/20 週日',time:'03:00',home:tbd('W101'),away:tbd('W102'),venue:'MetLife Stadium',isFinal:true},
+  ]},
+];
+
+// Venue short name → full VENUES key mapping
+const VENUE_SHORT_MAP={
+  'Estadio BBVA':         'Estadio BBVA, Monterrey',
+  'Estadio Azteca':       'Estadio Azteca, Mexico City',
+  'NRG Stadium':          'NRG Stadium, Houston',
+  'MetLife Stadium':      'MetLife Stadium, New York/New Jersey',
+  'SoFi Stadium':         'SoFi Stadium, Los Angeles',
+  'BC Place':             'BC Place, Vancouver',
+  'Lumen Field':          'Lumen Field, Seattle',
+  'Mercedes-Benz Stadium':'Mercedes-Benz Stadium, Atlanta',
+  'BMO Field':            'BMO Field, Toronto',
+  'Gillette Stadium':     'Gillette Stadium, Boston',
+  'AT&T Stadium':         'AT&T Stadium, Dallas',
+  'Arrowhead Stadium':    'Arrowhead Stadium, Kansas City',
+  'Hard Rock Stadium':    'Hard Rock Stadium, Miami',
+  "Levi's Stadium":       "Levi's Stadium, San Francisco Bay Area",
+  'Lincoln Financial Field':'Lincoln Financial Field, Philadelphia',
+};
+
+let koActiveRound=0;
+
+// ══ Official 2026 bracket structure (two pathways) ══════════════════════════
+// LEFT HALF:  M73,M74,M75,M76 → M89(W73+W74),M90(W75+W76) → M97(W89+W90) → M101(SF1)
+// RIGHT HALF: M77,M78,M79,M80 → M91(W77+W78),M92(W79+W80) → M98(W91+W92) → M101(SF1)?
+// Actually two semis: M101=W97+W98, M102=W99+W100
+// Full official pairing from FIFA/search results:
+//
+// R32 order for bracket display (top→bottom, no line crossings):
+//   [0] M73  [1] M74   → M89  [0]
+//   [2] M75  [3] M76   → M90  [1]
+//   [4] M77  [5] M78   → M91  [2]
+//   [6] M79  [7] M80   → M92  [3]
+//   [8] M81  [9] M82   → M93  [4]
+//  [10] M83 [11] M84   → M94  [5]   (M93=W81+W82, M94=W83+W84 per search)
+//  [12] M85 [13] M87   → M96  [6]   (M96=W85+W87)
+//  [14] M86 [15] M88   → M95  [7]   (M95=W86+W88)
+//  [16] M89 wait... M89 is R16. 
+// R32 only has 18 matches M73-M90. But M89 and M90 are R16 in official!
+// Official: M73-M90 = Round of 32 (18 matches)
+//           M89 in R32 = I2 vs J2, M90 = K2 vs L2 (from our KO_ROUNDS data)
+// R16: M91(W73+W75), M92(W74+W77), wait no—
+// 
+// Per search result (defirate.com bracket):
+// LEFT HALF path:  M73→M74→M89; M75→M76→M90; M89+M90→M97; M97→M101(SF1)→Final
+// RIGHT HALF path: M77→M78→M91; M79→M80→M92; M91+M92→M98; M93→M94→M99; M95→M96→M100; M99+M100→M102(SF2)→Final
+// 
+// Per Paddy Power / official search:
+// R16: M90=W73+W75, M89=W74+W77, M91=W76+W78, M92=W79+W80
+//      M93=W83+W84, M94=W81+W82, M95=W86+W88, M96=W85+W87
+// QF:  M97=W89+W90, M98=W91+W92, M99=W93+W94, M100=W95+W96
+// SF:  M101=W97+W98, M102=W99+W100
+// Final: W101+W102
+//
+// Our R32 match IDs: M73(0)=2A/2B, M74(1)=1E/3ABCDF, M75(2)=1F/2C, M76(3)=1C/2F
+//   M77(4)=1D/3CEHIL, M78(5)=1B/3ADEFH, M79(6)=1A/3ACEHI, M80(7)=1I/3ABDG
+//   M81(8)=1G/3ABCDF, M82(9)=1H/3EGJKL, M83(10)=1L/3BCDEFJ, M84(11)=1J/3DEFHIK
+//   M85(12)=1K/3CDEHIL, M86(13)=C2/D2, M87(14)=E2/F2, M88(15)=G2/H2
+//   M89(16)=I2/J2, M90(17)=K2/L2
+//
+// BRACKET DISPLAY ORDER (top→bottom, bracket pairs grouped, no crossings):
+// Left half:
+//   M74(1), M73(0) → R16 M89 (W74+W73? But official=W74+W77...)
+// 
+// Official pairings per Paddy Power:
+//   R16 M90 = W73 + W75      R16 M89 = W74 + W77
+//   R16 M91 = W76 + W78      R16 M92 = W79 + W80
+//   R16 M93 = W83 + W84      R16 M94 = W81 + W82  (note: 94 before 93 in bracket)
+//   R16 M95 = W86 + W88      R16 M96 = W85 + W87
+//
+// So CORRECT bracket display order (bracket pairs must be adjacent, no crossings):
+// GROUP 1 (→M90): M73(top), M75(bottom)   [both feed M90]
+// GROUP 2 (→M89): M74(top), M77(bottom)   [both feed M89; but M77=1D idx 4]
+//   Wait M77 is R32 index 4. To avoid crossings: arrange R32 as:
+//   M73,M75 | M74,M77 | M76,M78 | M79,M80 | M81,M82 | M83,M84 | M85,M87 | M86,M88 → M95,M96?
+//   Plus: M89(16),M90(17) — where do they connect?
+//   Actually M89(I2/J2) and M90(K2/L2) are just R32 matches that produce winners
+//   but they need their own R16 slot — 18 R32 = 18 winners but only 8 R16 slots... impossible
+//   Oh wait: 18 R32 → 9 pairs = ... no, 32 teams in KO = 16 R16 matches? No.
+//   Actually: 32 teams → 16 R16 matches? But we only have 8 R16 matches!
+//   The bracket is: 18 R32 matches → 18 winners → but only 8 R16 matches (16 teams)
+//   This means some R32 winners get a "bye"? NO.
+//   Actually: 32 teams enter KO. 32/2=16 R16 matches... but FIFA lists 8 R16.
+//   Re-reading: 32 teams, R32=round of 32 produces 16 teams, then R16=8 matches (16→8 teams), QF=4, SF=2, F=1
+//   So 18 R32 matches is WRONG for a standard bracket.
+//   Per our data: R32 has 18 matches (M73-M90)? But the bracket sites show only M73-M88 = 16 R32 matches!
+//   The "M89,M90" in our data might be R16 matches, not R32!
+//   Paddy Power: "R16 M90=W73+W75, R16 M89=W74+W77" ← M89,M90 ARE R16 matches!
+//   So our data has 16 R32 (M73-M88) and M89-M96 are R16 (8 matches)!
+//
+// CORRECTED MATCH NUMBERING:
+//   R32: M73-M88 (16 matches) ← 5 pairs of dates
+//   R16: M89-M96 (8 matches)
+//   QF:  M97-M100 (4 matches)
+//   SF:  M101-M102 (2 matches)
+//   3rd: M103, Final: M104
+
+// Our KO_ROUNDS currently has 18 R32 entries (M73-M90). We need to fix:
+// M89(I2/J2) and M90(K2/L2) should move to R16 slot, and actual R16 is:
+// M89=W74+W77, M90=W73+W75, M91=W76+W78, M92=W79+W80, M93=W83+W84, M94=W81+W82, M95=W86+W88, M96=W85+W87
+// However renumbering is complex. Let's just build the DISPLAY order correctly
+// using our existing data, reordering for clean bracket display.
+
+// FINAL BRACKET DISPLAY STRUCTURE:
+// We define bracket as a tree. Each R16 match connects two R32 matches.
+// Display order (top to bottom within each column) chosen to avoid crossings:
+//
+// Column R32 (16 matches, display order):
+//  slot 0: M73  ─┐
+//  slot 1: M75  ─┘→ R16 slot 0: M90
+//  slot 2: M74  ─┐
+//  slot 3: M77  ─┘→ R16 slot 1: M89   (note: our M77=idx4 in KO_ROUNDS)
+//  slot 4: M76  ─┐
+//  slot 5: M78  ─┘→ R16 slot 2: M91
+//  slot 6: M79  ─┐
+//  slot 7: M80  ─┘→ R16 slot 3: M92
+//  --- right half ---
+//  slot 8:  M81  ─┐
+//  slot 9:  M82  ─┘→ R16 slot 4: M94  (M94=W81+W82)
+//  slot 10: M83  ─┐
+//  slot 11: M84  ─┘→ R16 slot 5: M93  (M93=W83+W84)
+//  slot 12: M85  ─┐
+//  slot 13: M87  ─┘→ R16 slot 6: M96  (M96=W85+W87)
+//  slot 14: M86  ─┐
+//  slot 15: M88  ─┘→ R16 slot 7: M95  (M95=W86+W88)
+// (M89,M90 in our data = I2/J2 and K2/L2 → these are R32 that feed R16... skipped from visual for now)
+// Actually since we have 18 R32 (our data), some won't display in classic bracket.
+// For clean bracket: only show 16 R32 matches in bracket, put M89/M90 separately or as R16 entries.
+
+// Bracket pairs — data is already in correct display order (no reordering needed)
+// R32: [M73,M75,M74,M77,M76,M78,M79,M80,M83,M84,M81,M82,M86,M88,M85,M87]
+// Each consecutive pair feeds one R16 slot
+const BRACKET_R32_ORDER  = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+const BRACKET_R32_PAIRS  = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15]];
+// R16: [M90,M89,M91,M92,M93,M94,M95,M96] — consecutive pairs feed QF
+const BRACKET_R16_ORDER  = [0,1,2,3,4,5,6,7];
+const BRACKET_R16_PAIRS  = [[0,1],[2,3],[4,5],[6,7]];
+// QF: [M97,M98,M99,M100] — consecutive pairs feed SF
+const BRACKET_QF_ORDER   = [0,1,2,3];
+const BRACKET_QF_PAIRS   = [[0,1],[2,3]];
+// SF
+const BRACKET_SF_ORDER   = [0,1];
+const BRACKET_SF_PAIRS   = [[0,1]];
+
+function reorder(matches, order){
+  return order.map(i=>matches[i]).filter(Boolean);
+}
+
+// ── Card builder ──────────────────────────────────────────────────────────────
+function makeBktCard(m){
+  const cls=m.isFinal?'bkt-card final-card':m.isThird?'bkt-card third-card':'bkt-card';
+  const fullVenue=VENUE_SHORT_MAP[m.venue]||m.venue;
+  const el=document.createElement('div');
+  el.className=cls; el.dataset.venue=fullVenue;
+  const mk=t=>t.tbd
+    ?`<div class="bkt-tbd">${t.name}</div>`
+    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>`;
+  el.innerHTML=`
+    <div class="bkt-card-hdr">
+      <span class="bkt-mid">${m.id||''}</span>
+      <span class="bkt-time">${m.date.split(' ')[0]} ${m.time}</span>
+    </div>
+    <div class="bkt-team">${mk(m.home)}</div>
+    <div class="bkt-team">${mk(m.away)}</div>
+    <div class="bkt-venue">📍 ${m.venue}</div>`;
+  const vm=vMarkers[fullVenue]; const col=vm?vm.col:'#818CF8';
+  el.addEventListener('mouseenter',()=>{el.style.outline=`2px solid ${col}`;showHighlight(fullVenue);showVenueInfo(fullVenue);});
+  el.addEventListener('mouseleave',()=>{el.style.outline='none';hideHighlight();});
+  return el;
+}
+
+// ── SVG connector ─────────────────────────────────────────────────────────────
+function drawBktConnectors(leftCards,rightCards,pairs,connEl){
+  // Called synchronously after positions are set — no extra rAF needed
+  const cr=connEl.getBoundingClientRect();
+  const totalH=connEl.offsetHeight||500;
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const W=32;
+  svg.setAttribute('width',W); svg.setAttribute('height',totalH);
+  svg.style.cssText='position:absolute;top:0;left:0;overflow:visible;pointer-events:none';
+  pairs.forEach(([ia,ib],k)=>{
+    const lca=leftCards[ia],lcb=leftCards[ib],rc=rightCards[k];
+    if(!lca||!lcb||!rc) return;
+    const ra=lca.getBoundingClientRect(),rb=lcb.getBoundingClientRect(),rrc=rc.getBoundingClientRect();
+    const ya=(ra.top+ra.bottom)/2-cr.top;
+    const yb=(rb.top+rb.bottom)/2-cr.top;
+    const yMid=(ya+yb)/2;
+    const p=document.createElementNS(svgNS,'path');
+    p.setAttribute('d',`M0,${ya} H${W/2} V${yMid} M0,${yb} H${W/2} V${yMid} M${W/2},${yMid} H${W}`);
+    p.setAttribute('fill','none');p.setAttribute('stroke','#94a3b8');
+    p.setAttribute('stroke-width','1.5');p.setAttribute('stroke-linejoin','round');
+    svg.appendChild(p);
+  });
+  connEl.appendChild(svg);
+}
+
+// ── Build one display column ──────────────────────────────────────────────────
+const CARD_H=74, GAP=8, LABEL_H=26;
+
+// Build a column with no vertical positioning (first pass)
+function buildBktCol(matches,label,labelCls){
+  const col=document.createElement('div');
+  col.className='bkt-col';
+  const lbl=document.createElement('div');
+  lbl.className='bkt-col-label'+(labelCls?' '+labelCls:'');
+  lbl.textContent=label;
+  col.appendChild(lbl);
+  const cards=[];
+  matches.forEach(m=>{
+    const slot=document.createElement('div');
+    slot.style.marginBottom=GAP+'px';
+    const card=makeBktCard(m);
+    slot.appendChild(card);
+    col.appendChild(slot);
+    cards.push(card);
+  });
+  return{col,cards};
+}
+
+// After DOM layout, position right-col cards to vertically centre between their left-col pair
+function centerCards(rightCards,leftCards,pairs,panelEl){
+  pairs.forEach(([ia,ib],k)=>{
+    const lca=leftCards[ia], lcb=leftCards[ib], rc=rightCards[k];
+    if(!lca||!lcb||!rc) return;
+    const ra=lca.getBoundingClientRect();
+    const rb=lcb.getBoundingClientRect();
+    const pr=panelEl.getBoundingClientRect();
+    const midY=(ra.top+ra.bottom)/2/2 + (rb.top+rb.bottom)/2/2 - pr.top + panelEl.scrollTop;
+    // midY = average of the two card midpoints relative to panel
+    const midActual=((ra.top+ra.bottom)+(rb.top+rb.bottom))/4 - pr.top + panelEl.scrollTop;
+    rc.parentElement.style.position='absolute';
+    rc.parentElement.style.top=(midActual - CARD_H/2)+'px';
+    rc.parentElement.style.left='0';
+    rc.parentElement.style.marginBottom='0';
+  });
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+function renderKO(){
+  const el=document.getElementById('koContent');
+  if(el.dataset.built) return;
+  el.dataset.built='1';
+
+  const r32m=KO_ROUNDS[0].matches, r16m=KO_ROUNDS[1].matches,
+        qfm=KO_ROUNDS[2].matches,  sfm=KO_ROUNDS[3].matches,
+        thirdm=KO_ROUNDS[4].matches,finm=KO_ROUNDS[5].matches;
+
+  const r32=reorder(r32m,BRACKET_R32_ORDER);
+  const r16=reorder(r16m,BRACKET_R16_ORDER);
+  const qf =reorder(qfm, BRACKET_QF_ORDER);
+  const sf =reorder(sfm, BRACKET_SF_ORDER);
+
+  // ── Build all columns (no vertical offset yet) ─────────────────────────────
+  const colDefs=[
+    {matches:r32,  label:'Round of 32',   cls:''},
+    {matches:r16,  label:'Round of 16',   cls:'next'},
+    {matches:qf,   label:'Quarter-final', cls:'qf'},
+    {matches:sf,   label:'Semi-final',    cls:'sf'},
+    {matches:finm, label:'Final 🏆',      cls:'final'},
+  ];
+  const allCardSets=[], allColEls=[];
+
+  colDefs.forEach((c,i)=>{
+    const {col,cards}=buildBktCol(c.matches,c.label,c.cls);
+    // Cols 1+ need relative positioning for their slots to be absolute-positioned later
+    if(i>0) col.style.position='relative';
+    allCardSets.push(cards);
+    allColEls.push(col);
+    el.appendChild(col);
+    if(i<colDefs.length-1){
+      const conn=document.createElement('div');
+      conn.className='bkt-conn';
+      conn.style.cssText='width:32px;flex-shrink:0;align-self:stretch;position:relative';
+      el.appendChild(conn);
+    }
+  });
+
+  // Third-place below Final
+  const finColEl=allColEls[allColEls.length-1];
+  const thirdLbl=document.createElement('div');
+  thirdLbl.className='bkt-col-label';
+  thirdLbl.style.cssText='background:#047857;margin-top:20px;margin-bottom:8px';
+  thirdLbl.textContent='Third-place';
+  const thirdCard=makeBktCard(thirdm[0]);
+  finColEl.appendChild(thirdLbl);
+  finColEl.appendChild(thirdCard);
+
+  // ── After layout: 3-pass approach ──────────────────────────────────────────
+  // Pass 1: set col heights
+  // Pass 2: position all cards using real DOM coords
+  // Pass 3: draw all SVG connectors using real DOM coords
+  const pairsPerConn=[BRACKET_R32_PAIRS,BRACKET_R16_PAIRS,BRACKET_QF_PAIRS,BRACKET_SF_PAIRS];
+
+  // Pass 1 — set heights so absolute positioning has a reference container
+  requestAnimationFrame(()=>{
+    // R16,QF,SF cols: match height of their left col
+    [1,2,3].forEach(i=>{
+      allColEls[i].style.height=allColEls[i-1].offsetHeight+'px';
+    });
+    // Final col: tall enough for Final card + gap + Third-place
+    allColEls[4].style.height=(LABEL_H+CARD_H+48+LABEL_H+CARD_H+20)+'px';
+
+    // Pass 2 — position cards using real coords
+    requestAnimationFrame(()=>{
+
+      // R16, QF, SF: centre each card between its pair in prev col
+      [0,1,2].forEach(i=>{
+        const pairs=pairsPerConn[i];
+        const leftCards=allCardSets[i];
+        const rightCards=allCardSets[i+1];
+        const rightCol=allColEls[i+1];
+        const rRect=rightCol.getBoundingClientRect();
+        pairs.forEach(([ia,ib],k)=>{
+          const lca=leftCards[ia], lcb=leftCards[ib], rc=rightCards[k];
+          if(!lca||!lcb||!rc) return;
+          const ra=lca.getBoundingClientRect();
+          const rb=lcb.getBoundingClientRect();
+          const midY=((ra.top+ra.bottom)+(rb.top+rb.bottom))/4 - rRect.top;
+          const slot=rc.parentElement;
+          slot.style.cssText=`position:absolute;top:${Math.max(LABEL_H,midY-CARD_H/2)}px;left:0;margin:0`;
+        });
+      });
+
+      // Final card: pin to top (just below label)
+      const finCard=allCardSets[4][0];
+      if(finCard){
+        const slot=finCard.parentElement;
+        slot.style.cssText=`position:absolute;top:${LABEL_H}px;left:0;margin:0`;
+      }
+      // Third-place: below Final card + 48px gap
+      const finChildren=Array.from(finColEl.children);
+      let thirdOffset=LABEL_H+CARD_H+48;
+      let passedSlot=false;
+      finChildren.forEach((ch,idx)=>{
+        if(idx===0) return; // skip main label
+        if(!passedSlot && ch.tagName==='DIV' && ch.children[0]&&ch.children[0].classList.contains('bkt-card')){
+          passedSlot=true; return; // skip final card slot
+        }
+        // third-place label and card
+        ch.style.cssText=`position:absolute;left:0;top:${thirdOffset}px;margin:0`;
+        thirdOffset+=ch.offsetHeight||CARD_H;
+      });
+
+      // Pass 3 — draw SVG connectors (all cols now have correct positions)
+      requestAnimationFrame(()=>{
+        const connEls=el.querySelectorAll('.bkt-conn');
+        connEls.forEach((conn,i)=>{
+          if(!allCardSets[i]||!allCardSets[i+1]) return;
+          // Set connector height to match left col
+          const leftCol=allColEls[i];
+          conn.style.height=leftCol.offsetHeight+'px';
+          drawBktConnectors(allCardSets[i],allCardSets[i+1],pairsPerConn[i],conn);
+        });
+      });
+    });
+  });
+}
+</script>
+</body>
+</html>
