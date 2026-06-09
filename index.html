@@ -151,12 +151,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .flag-img{width:32px;height:22px;object-fit:cover;border-radius:2px;
   border:1px solid rgba(0,0,0,.1);flex-shrink:0}
 /* ══ Tab navigation ══ */
-.tab-bar{display:flex;background:#fff;border-bottom:2px solid #E2E8F0;flex-shrink:0}
+.tab-bar{display:flex;background:#f1f5f9;border-bottom:3px solid #e2e8f0;flex-shrink:0;gap:4px;padding:8px 8px 0}
 .tab-btn{flex:1;padding:10px 0;font-size:13px;font-weight:700;font-family:inherit;
-  border:none;background:none;cursor:pointer;color:#64748b;
-  border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
-.tab-btn.active{color:#1e40af;border-bottom-color:#1e40af;background:#f0f6ff}
-.tab-btn:hover:not(.active){color:#334155;background:#f8faff}
+  border:none;cursor:pointer;
+  border-radius:10px 10px 0 0;
+  border-bottom:3px solid transparent;
+  margin-bottom:-3px;transition:all .15s;
+  color:#475569;background:#cbd5e1}
+.tab-btn:hover:not(.active){color:#1e293b;background:#94a3b8}
+#tabGroup.active{background:#dbeafe;color:#1d4ed8;border-bottom-color:#1d4ed8}
+#tabKO.active{background:#ede9fe;color:#6d28d9;border-bottom-color:#6d28d9}
+#tabStandings.active{background:#d1fae5;color:#065f46;border-bottom-color:#059669}
 
 /* ══ Knockout bracket ══ */
 .ko-wrap::-webkit-scrollbar{width:4px}
@@ -271,6 +276,135 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 @media screen and (min-width: 768px) and (max-width: 1199px) {
   .left-col { width: 320px; }
 }
+
+/* ══ Standings ══════════════════════════════════════════════════════════════ */
+.standings-wrap{flex:1;min-height:0;overflow-y:auto;padding:12px 22px 20px;background:transparent;position:relative;z-index:1}
+/* Grid layout for all groups */
+.std-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+.std-group-card{
+  background:#fff;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 3px 12px rgba(0,0,0,.10);
+  border:1px solid #E2E8F0;
+  min-width:0;
+}
+.std-gcard-hdr{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+}
+.std-gcard-title{
+  font-size:15px;font-weight:900;color:#fff;letter-spacing:.03em;
+  white-space:nowrap;
+}
+.std-gcard-cols{
+  font-size:9px;font-weight:700;color:rgba(255,255,255,.75);
+  letter-spacing:.03em;white-space:nowrap;text-align:right;
+}
+.std-team-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  padding:7px 8px;
+  border-bottom:1px solid #f1f5f9;
+  border-left:4px solid transparent;
+  gap:4px;
+}
+.std-team-row:last-child{border-bottom:none}
+.std-team-row:hover{background:rgba(0,0,0,.02)}
+.std-team-left{
+  display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;
+}
+.std-rank-num{
+  font-size:11px;font-weight:900;width:13px;flex-shrink:0;text-align:center;
+}
+.std-team-flag{
+  width:22px;height:15px;object-fit:cover;border-radius:2px;
+  border:1px solid rgba(0,0,0,.1);flex-shrink:0;
+}
+.std-team-name{
+  font-size:12px;font-weight:700;color:#0f172a;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.std-team-stats{
+  display:grid;
+  grid-template-columns:repeat(6,18px);
+  gap:0;
+  flex-shrink:0;
+  align-items:center;
+}
+.std-team-stats span{
+  font-size:11.5px;font-weight:600;color:#64748b;
+  text-align:center;line-height:1;
+}
+.std-pts{
+  font-size:12px!important;font-weight:900!important;color:#1e40af!important;
+  background:#EFF6FF;border-radius:4px;padding:2px 3px;
+  text-align:center;
+}
+.std-legend{
+  display:flex;gap:14px;font-size:11px;color:#64748b;font-weight:600;
+  flex-wrap:wrap;
+}
+.std-legend-item{display:flex;align-items:center;gap:5px}
+.std-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.standings-wrap::-webkit-scrollbar{width:4px}
+.standings-wrap::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+/* Group tabs */
+.std-group-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:2px}
+.std-gtab{padding:5px 12px;border-radius:99px;font-size:11.5px;font-weight:700;
+  border:2px solid #CBD5E1;background:#fff;color:#475569;cursor:pointer;
+  font-family:inherit;transition:all .15s}
+.std-gtab.active{color:#fff}
+/* Table */
+.std-table-wrap{background:#fff;border-radius:14px;overflow:hidden;
+  border:1.5px solid #E2E8F0;margin-bottom:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.std-table-header{display:flex;align-items:center;padding:12px 16px;border-bottom:none}
+.std-group-title{font-size:15px;font-weight:900;flex:1;letter-spacing:-.2px}
+.std-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.std-th{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;
+  letter-spacing:.05em;padding:8px 4px;text-align:center;
+  border-top:1.5px solid #E2E8F0;border-bottom:1.5px solid #E2E8F0;
+  background:#f8faff}
+.std-th:first-child{text-align:left;padding-left:12px;width:34%}
+.std-th:last-child{color:#1e40af;width:11%}
+.std-tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
+.std-tr:last-child{border-bottom:none}
+.std-tr:hover{background:#f8faff}
+.std-tr.qualified{border-left:4px solid #10B981;background:#f0fdf4}
+.std-tr.qualified:hover{background:#dcfce7}
+.std-tr.third{border-left:4px solid #F59E0B;background:#fffbeb}
+.std-tr.third:hover{background:#fef9c3}
+.std-tr.eliminated{border-left:4px solid #e2e8f0}
+.std-td{font-size:13px;color:#475569;padding:11px 4px;text-align:center;font-weight:600}
+.std-td:first-child{text-align:left;padding-left:12px}
+.std-td.pts{font-size:14px;font-weight:900;color:#1e3a8a;
+  background:#EFF6FF;border-left:1px solid #BFDBFE}
+.std-td.gd{font-weight:700}
+.std-td.gd.pos{color:#059669}
+.std-td.gd.neg{color:#dc2626}
+.std-team-cell{display:flex;align-items:center;gap:9px}
+.std-team-flag{width:26px;height:18px;object-fit:cover;border-radius:3px;
+  border:1px solid rgba(0,0,0,.1);flex-shrink:0}
+.std-team-zh{font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.std-rank{width:18px;font-size:12px;font-weight:900;text-align:center;
+  flex-shrink:0;color:#94a3b8}
+.std-rank.q{color:#10B981}
+.std-rank.t{color:#F59E0B}
+/* Legend */
+.std-legend{display:flex;gap:16px;padding:6px 14px 10px;font-size:11px;color:#64748b;font-weight:600}
+.std-legend-item{display:flex;align-items:center;gap:5px}
+.std-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -309,6 +443,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="tab-bar">
     <button class="tab-btn active" id="tabGroup" onclick="switchTab('group')">📋 小組賽</button>
     <button class="tab-btn" id="tabKO" onclick="switchTab('ko')">⚔️ 淘汰賽</button>
+    <button class="tab-btn" id="tabStandings" onclick="switchTab('standings')">📊 戰績排名</button>
   </div>
   <!-- Group stage panel -->
   <div id="panelGroup" class="panel-group-desktop" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
@@ -340,6 +475,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="ko-wrap" id="koWrap">
       <div class="ko-panel" id="koContent"></div>
     </div>
+  </div>
+
+  <div id="panelStandings" style="display:none">
+    <div id="standingsBg" style="position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden">
+      <svg width="100%" height="100%" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice">
+        <defs><filter id="sf4"><feGaussianBlur stdDeviation="7"/></filter><filter id="mf4"><feGaussianBlur stdDeviation="2.5"/></filter></defs>
+        <path d="M-200,65 C-100,25 0,105 100,65 C200,25 300,105 400,65 C500,25 600,105 700,65 C800,25 900,105 1000,65" fill="none" stroke="rgba(239,68,68,0.4)" stroke-width="2.5" filter="url(#mf4)"><animateTransform attributeName="transform" type="translate" from="0,0" to="-200,0" dur="10s" repeatCount="indefinite"/></path>
+        <path d="M-200,285 C-100,245 0,325 100,285 C200,245 300,325 400,285 C500,245 600,325 700,285 C800,245 900,325 1000,285" fill="none" stroke="rgba(59,130,246,0.4)" stroke-width="2.5" filter="url(#mf4)"><animateTransform attributeName="transform" type="translate" from="-100,0" to="100,0" dur="12s" repeatCount="indefinite"/></path>
+        <path d="M-200,505 C-100,465 0,545 100,505 C200,465 300,545 400,505 C500,465 600,545 700,505 C800,465 900,545 1000,505" fill="none" stroke="rgba(16,185,129,0.4)" stroke-width="2.5" filter="url(#mf4)"><animateTransform attributeName="transform" type="translate" from="0,0" to="-200,0" dur="11s" repeatCount="indefinite"/></path>
+        <polygon points="450,15 570,210 330,210" fill="none" stroke="rgba(200,168,75,0.07)" stroke-width="1.5"/>
+        <text x="760" y="110" text-anchor="middle" font-size="96" fill="rgba(59,130,246,0.05)" style="font-family:Georgia,serif">&#9733;</text>
+        <polyline points="0,28 115,92 68,178 188,235 128,308 258,338" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-dasharray="420" filter="url(#mf4)"><animate attributeName="stroke-dashoffset" from="420" to="-420" dur="6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.65;0.65;0" keyTimes="0;0.1;0.78;1" dur="6s" repeatCount="indefinite"/></polyline>
+        <polyline points="900,50 698,125 755,215 642,265 688,348 552,378" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="440" filter="url(#mf4)"><animate attributeName="stroke-dashoffset" from="440" to="-440" dur="7s" repeatCount="indefinite" begin="3s"/><animate attributeName="opacity" values="0;0.55;0.55;0" keyTimes="0;0.1;0.78;1" dur="7s" repeatCount="indefinite" begin="3s"/></polyline>
+        <ellipse cx="450" cy="300" rx="160" ry="110" fill="rgba(99,102,241,0.04)" filter="url(#sf4)"><animate attributeName="rx" values="160;190;160" dur="8s" repeatCount="indefinite"/></ellipse>
+      </svg>
+    </div>
+    <div class="standings-wrap" id="standingsWrap"></div>
   </div>
 </div>
 
@@ -1294,12 +1446,14 @@ function render(){
     e.textContent='🔍 找不到符合條件的賽事';list.appendChild(e);}
 }
 render();
-// Force correct flex layout on initial load (prevents needing to switch tabs first)
+// Force correct flex layout on initial load
 (function(){
   const pg=document.getElementById('panelGroup');
   const pk=document.getElementById('panelKO');
+  const ps=document.getElementById('panelStandings');
   if(pg) pg.style.cssText='display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden';
   if(pk) pk.style.cssText='display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column';
+  if(ps) ps.style.cssText='display:none;'
 })();
 
 // ── Mobile map/venue toggle ───────────────────────────────────────────────────
@@ -1372,28 +1526,227 @@ function applyMobileLayout(){
 window.addEventListener('DOMContentLoaded', applyMobileLayout);
 window.addEventListener('resize', applyMobileLayout);
 
+// ══ Standings data ═══════════════════════════════════════════════════════════
+// Format: {zh, code, mp, w, d, l, gf, ga}
+// mp/w/d/l/gf/ga all start at 0 — update after each match day
+const STANDINGS = {
+  A:[
+    {zh:'墨西哥',code:'mx',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'南韓',code:'kr',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'南非',code:'za',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'捷克',code:'cz',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  B:[
+    {zh:'加拿大',code:'ca',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'瑞士',code:'ch',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'波斯尼亞',code:'ba',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'卡達',code:'qa',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  C:[
+    {zh:'巴西',code:'br',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'蘇格蘭',code:'gb-sct',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'摩洛哥',code:'ma',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'海地',code:'ht',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  D:[
+    {zh:'美國',code:'us',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'土耳其',code:'tr',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'巴拉圭',code:'py',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'澳洲',code:'au',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  E:[
+    {zh:'德國',code:'de',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'象牙海岸',code:'ci',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'庫拉索',code:'cw',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'厄瓜多',code:'ec',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  F:[
+    {zh:'荷蘭',code:'nl',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'日本',code:'jp',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'瑞典',code:'se',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'突尼西亞',code:'tn',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  G:[
+    {zh:'比利時',code:'be',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'伊朗',code:'ir',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'埃及',code:'eg',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'紐西蘭',code:'nz',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  H:[
+    {zh:'西班牙',code:'es',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'烏拉圭',code:'uy',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'維德角',code:'cv',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'沙烏地阿拉伯',code:'sa',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  I:[
+    {zh:'法國',code:'fr',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'挪威',code:'no',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'塞內加爾',code:'sn',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'伊拉克',code:'iq',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  J:[
+    {zh:'阿根廷',code:'ar',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'奧地利',code:'at',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'阿爾及利亞',code:'dz',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'約旦',code:'jo',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  K:[
+    {zh:'葡萄牙',code:'pt',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'哥倫比亞',code:'co',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'剛果民主共和國',code:'cd',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'烏茲別克',code:'uz',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+  L:[
+    {zh:'英格蘭',code:'gb-eng',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'克羅埃西亞',code:'hr',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'巴拿馬',code:'pa',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+    {zh:'迦納',code:'gh',mp:0,w:0,d:0,l:0,gf:0,ga:0,form:[]},
+  ],
+};
+
+let stdActiveGroup='ALL';
+
+function renderStandings(){
+  const wrap=document.getElementById('standingsWrap');
+  if(wrap.dataset.lastGroup===stdActiveGroup) return;
+  wrap.dataset.lastGroup=stdActiveGroup;
+
+  const SDC={
+    A:['rgba(239,68,68,0.88)','rgba(220,38,38,0.88)'],
+    B:['rgba(37,99,235,0.88)','rgba(29,78,216,0.88)'],
+    C:['rgba(16,185,129,0.88)','rgba(5,150,105,0.88)'],
+    D:['rgba(249,115,22,0.88)','rgba(234,88,12,0.88)'],
+    E:['rgba(124,58,237,0.88)','rgba(109,40,217,0.88)'],
+    F:['rgba(6,182,212,0.88)','rgba(8,145,178,0.88)'],
+    G:['rgba(202,138,4,0.88)','rgba(161,98,7,0.88)'],
+    H:['rgba(192,38,211,0.88)','rgba(162,28,175,0.88)'],
+    I:['rgba(2,132,199,0.88)','rgba(3,105,161,0.88)'],
+    J:['rgba(5,150,105,0.88)','rgba(4,120,87,0.88)'],
+    K:['rgba(220,38,38,0.88)','rgba(185,28,28,0.88)'],
+    L:['rgba(79,70,229,0.88)','rgba(67,56,202,0.88)'],
+  };
+  const allGroups='ABCDEFGHIJKL'.split('');
+  const groups=stdActiveGroup==='ALL'?allGroups:[stdActiveGroup];
+
+  // ── Legend ──────────────────────────────────────────────────────────────
+  let h='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:10px">'
+    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#10B981;display:inline-block"></span>晉級（前2名）</span>'
+    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>可能晉級（第3名）</span>'
+    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>出局</span>'
+    +'</div>';
+
+  // ── Cards grid ──────────────────────────────────────────────────────────
+  h+='<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:0 12px">';
+
+  groups.forEach(function(g){
+    const t=GT[g];
+    const teams=STANDINGS[g].map(function(tm){
+      return Object.assign({},tm,{pts:tm.w*3+tm.d,gd:tm.gf-tm.ga});
+    }).sort(function(a,b){return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf;});
+
+    h+='<div style="background:rgba(10,18,40,0.86);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5)">';
+
+    // Card header
+    h+='<div style="padding:9px 13px;display:flex;align-items:center;justify-content:space-between;background:'+t.bdr+'22;border-bottom:2px solid '+t.bdr+'">'
+      +'<span style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em">GROUP '+g+'</span>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,22px) 30px 54px;text-align:center">'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">P</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">W</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">D</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">L</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">GF</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">GA</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">GD</span>'
+      +'<span style="font-size:9px;font-weight:700;color:#fbbf24">Pts</span>'
+      +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">Form</span>'
+      +'</div></div>';
+
+    teams.forEach(function(tm,i){
+      const rowBg='rgba(255,255,255,.02)';
+      const borderL='#1a2540';
+      const rkColor='#2a3a5a';
+      const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
+      // Form dots: array of 'W','D','L','-'
+      const formArr=(tm.form||['-','-','-','-','-']).slice(-5);
+      while(formArr.length<5) formArr.unshift('-');
+      const formDotColor={'W':'#10B981','D':'#94a3b8','L':'#ef4444','-':'#1e293b'};
+      const formHtml='<div style="display:flex;align-items:center;justify-content:center;gap:2px">'
+        +formArr.map(function(r){return '<span style="width:8px;height:8px;border-radius:50%;background:'+formDotColor[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
+        +'</div>';
+      const gdColor=tm.gd>0?'#10B981':tm.gd<0?'#f87171':'#3a5070';
+      const ptsColor=i<2?'#fbbf24':i===2?'#f97316':'#94a3b8';
+      const isLast=i===teams.length-1;
+      h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:9px 13px;'
+        +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.06)')+';'
+        +'border-left:4px solid '+borderL+';background:'+rowBg+'">'
+        +'<div style="display:flex;align-items:center;gap:7px;min-width:0">'
+        +'<span style="font-size:12px;font-weight:900;color:'+rkColor+';width:14px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
+        +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:22px;height:15px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.2);flex-shrink:0" onerror="this.style.display=\'none\'">'
+        +'<span style="font-size:13px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(7,22px) 30px 54px;text-align:center;align-items:center">'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.mp+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.w+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.d+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.l+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.gf+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.ga+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+gdColor+'">'+gdStr+'</span>'
+        +'<span style="font-size:13px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.13);border-radius:4px;padding:1px 0">'+tm.pts+'</span>'
+        +formHtml
+        +'</div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+
+  wrap.innerHTML=h;
+}
+
+function setStdGroup(g){
+  stdActiveGroup=g;
+  const wrap=document.getElementById('standingsWrap');
+  if(wrap) wrap.dataset.lastGroup='__force__';
+  renderStandings();
+}
+
 // ══ Tab switching ══════════════════════════════════════════════════════════════
 function switchTab(tab){
   const isGroup=tab==='group';
+  const isKO=tab==='ko';
+  const isStandings=tab==='standings';
   const pg=document.getElementById('panelGroup');
   const pk=document.getElementById('panelKO');
+  const ps=document.getElementById('panelStandings');
   const isMobile=window.innerWidth<768;
   if(isMobile){
     pg.style.display=isGroup?'block':'none';
-    pk.style.display=isGroup?'none':'block';
+    pk.style.display=isKO?'block':'none';
+    if(ps) ps.style.display=isStandings?'block':'none';
   } else {
-    // Desktop: must restore ALL flex properties to prevent layout collapse
-    if(isGroup){
-      pg.style.cssText='display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden';
-      pk.style.cssText='display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column';
-    } else {
-      pg.style.cssText='display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden';
-      pk.style.cssText='display:flex;flex:1;min-height:0;overflow:hidden;flex-direction:column';
+    pg.style.cssText=isGroup?'display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden':'display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column';
+    pk.style.cssText=isKO?'display:flex;flex:1;min-height:0;overflow:hidden;flex-direction:column':'display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column';
+    if(ps){
+      if(isStandings){
+        ps.style.cssText='display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden;background:#060c1a;position:relative';
+        // Force wrap scroll BEFORE renderStandings runs
+        const sw=document.getElementById('standingsWrap');
+        if(sw) sw.style.cssText='flex:1;min-height:0;overflow-y:auto;padding:12px 22px 20px;background:transparent;position:relative;z-index:1';
+      } else {
+        ps.style.cssText='display:none';
+      }
     }
   }
   document.getElementById('tabGroup').classList.toggle('active',isGroup);
-  document.getElementById('tabKO').classList.toggle('active',!isGroup);
-  if(!isGroup) renderKO();
+  document.getElementById('tabKO').classList.toggle('active',isKO);
+  const ts=document.getElementById('tabStandings');
+  if(ts) ts.classList.toggle('active',isStandings);
+  if(isKO) renderKO();
+  if(isStandings){
+    const sw=document.getElementById('standingsWrap');
+    if(sw) sw.dataset.lastGroup='';
+    renderStandings();
+  }
 }
 
 // ══ Knockout bracket ══════════════════════════════════════════════════════════
