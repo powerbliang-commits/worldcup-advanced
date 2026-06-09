@@ -13,8 +13,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 /* ═══ LEFT COL ═══ */
 .left-col{width:410px;flex-shrink:0;display:flex;flex-direction:column;
-  border-right:1px solid #1e293b;height:100vh;overflow:hidden}
-.map-block{flex:0 0 38%;position:relative;overflow:hidden}
+  border-right:1px solid #293548;height:100vh;overflow:hidden}
+.map-toggle-btn{display:none}
+.map-block{height:28vh;position:relative;overflow:hidden;flex-shrink:0}
 #map{width:100%;height:100%}
 
 /* Leaflet resets */
@@ -38,8 +39,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   justify-content:center;height:100%;padding:20px;text-align:center}
 .venue-placeholder-icon{font-size:28px;margin-bottom:8px;opacity:.35}
 .venue-placeholder-txt{font-size:11.5px;line-height:1.7;color:#94a3b8}
-.venue-hero{width:100%;height:120px;object-fit:cover;display:block;background:#e2e8f0}
-.venue-hero-wrap{position:relative}
+.venue-hero{width:100%;height:135px;display:block;background:#e2e8f0}
+.venue-hero-wrap{position:relative;overflow:hidden;width:100%}
 .venue-country-badge{position:absolute;top:10px;right:10px;padding:3px 10px;
   border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;
   box-shadow:0 2px 6px rgba(0,0,0,.25)}
@@ -49,7 +50,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   text-transform:uppercase;letter-spacing:.06em}
 .venue-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
 .vs-item{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:9px 6px;
-  text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  text-align:center}
 .vs-val{font-size:13px;font-weight:800;color:#0f172a;line-height:1.2}
 .vs-lbl{font-size:10.5px;color:#334155;margin-top:3px;font-weight:700;
   text-transform:uppercase;letter-spacing:.03em}
@@ -65,19 +66,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* ═══ RIGHT COL ═══ */
 .right-col{flex:1;min-width:0;display:flex;flex-direction:column;
   background:#F8FAFF;color:#1a1a2e;height:100vh;overflow:hidden}
-.hdr{background:linear-gradient(135deg,#1e3a5f,#1e40af);padding:12px 18px;flex-shrink:0}
+.hdr{background:linear-gradient(135deg,#172554,#1d4ed8);padding:12px 18px;flex-shrink:0}
 .hdr-title{font-size:16px;font-weight:800;color:#fff;margin-bottom:2px}
 .hdr-sub{font-size:11px;color:#93c5fd;line-height:1.4}
 .stats{display:flex;gap:0;padding:0;flex-shrink:0;background:#fff;
   border-bottom:1px solid #E2E8F0}
-.stat{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
-  padding:7px 8px;border-top:4px solid;border-radius:0}
-.stat:nth-child(1){border-color:#3B82F6;background:#EFF6FF}
-.stat:nth-child(2){border-color:#10B981;background:#ECFDF5}
-.stat:nth-child(3){border-color:#F59E0B;background:#FFFBEB}
-.stat:nth-child(4){border-color:#EC4899;background:#FDF2F8}
-.stat-val{font-size:17px;font-weight:800;color:#0f172a}
-.stat-lbl{font-size:12px;color:#334155;font-weight:600}
+.stat{flex:1;text-align:center;padding:9px 8px;position:relative}
+.stat::after{content:'';position:absolute;bottom:0;left:10%;width:80%;height:3px;border-radius:3px 3px 0 0}
+.stat:nth-child(1){background:#EFF6FF}.stat:nth-child(1)::after{background:#2563eb}
+.stat:nth-child(2){background:#ECFDF5}.stat:nth-child(2)::after{background:#059669}
+.stat:nth-child(3){background:#FFFBEB}.stat:nth-child(3)::after{background:#d97706}
+.stat:nth-child(4){background:#FDF2F8}.stat:nth-child(4)::after{background:#db2777}
+.stat-val{font-size:19px;font-weight:900;color:#0f172a;line-height:1}
+.stat-lbl{font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px}
 .controls{padding:8px 13px;flex-shrink:0;background:#fff;border-bottom:1px solid #E2E8F0}
 .group-btns{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
 .gbtn{font-size:12px;padding:4px 12px;border:2px solid transparent;border-radius:99px;
@@ -85,11 +86,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .gbtn.all-btn{background:#F1F5F9;color:#334155;border-color:#CBD5E1}
 .gbtn.all-btn.active,.gbtn.all-btn:hover{background:#0f172a;color:#fff;border-color:#0f172a}
 .filter-row{display:flex;gap:5px;align-items:center}
-.filter-row input,.filter-row select{font-size:13px;padding:6px 10px;
-  border:2px solid #CBD5E1;border-radius:8px;background:#F8FAFF;color:#1a1a2e;
+.filter-row input,.filter-row select{font-size:13px;padding:6px 12px;
+  border:2px solid #CBD5E1;border-radius:99px;background:#F8FAFF;color:#1a1a2e;
   height:36px;font-family:inherit;outline:none;flex:1;transition:border-color .15s}
 .filter-row input:focus,.filter-row select:focus{border-color:#3B82F6}
-.clear-btn{font-size:12px;padding:6px 12px;border:2px solid #CBD5E1;border-radius:8px;
+.clear-btn{font-size:12px;padding:6px 12px;border:2px solid #CBD5E1;border-radius:99px;
   background:#fff;color:#334155;cursor:pointer;height:36px;font-family:inherit;
   font-weight:700;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .clear-btn:hover{border-color:#F43F5E;color:#F43F5E;background:#FFF5F5}
@@ -97,7 +98,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .matches-wrap{flex:1;overflow-y:auto;padding:8px 13px 12px;background:#F8FAFF}
 .matches-wrap::-webkit-scrollbar{width:4px}
 .matches-wrap::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
-.day-hdr{font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;
+.day-hdr{font-size:12px;font-weight:800;color:#94a3b8;text-transform:uppercase;
   letter-spacing:.07em;padding:9px 0 5px;border-bottom:1.5px solid #E2E8F0;
   margin-top:9px;position:sticky;top:0;background:#F8FAFF;z-index:2}
 .day-hdr:first-child{margin-top:0}
@@ -105,11 +106,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   border:2px solid transparent;border-left-width:5px;
   margin-bottom:5px;cursor:pointer;background:#fff;
   transition:transform .12s,box-shadow .15s}
-.card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.09)}
+.card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.09);border-top-color:rgba(0,0,0,.08)!important}
 .card-main{display:grid;grid-template-columns:36px 138px 1fr auto;align-items:start;gap:9px}
 /* ── Card text ── */
-.grp-word{font-size:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.grp-letter{font-size:19px;font-weight:900;line-height:1.1}
+
 .team-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .team-row:last-of-type{margin-bottom:0}
 .flag-img{width:28px;height:19px;object-fit:cover;border-radius:2px;
@@ -132,10 +132,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.05);border-left:3px solid}
 .guide-inline-key-lbl{font-size:10px;font-weight:800;text-transform:uppercase;
   letter-spacing:.05em;color:#475569;margin-bottom:2px}
-.grp-badge{width:32px;height:32px;border-radius:50%;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;flex-shrink:0}
-.grp-word{font-size:6px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.grp-letter{font-size:16px;font-weight:900;line-height:1.1}
+.guide-toggle-btn{width:100%;text-align:left;padding:7px 12px;background:#f0f6ff;
+  border:none;border-top:1px solid #dbeafe;cursor:pointer;font-size:12px;
+  color:#1e40af;font-weight:700;font-family:inherit;display:flex;
+  align-items:center;justify-content:space-between}
+.guide-round-arrow{width:20px;height:20px;border-radius:50%;background:#dbeafe;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#1e40af;flex-shrink:0;transition:transform .2s}
+.guide-round-arrow.open{transform:rotate(180deg)}
+.grp-badge{display:flex;align-items:center;gap:5px;flex-shrink:0;padding-top:3px}
+.grp-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.grp-txt{font-size:8px;font-weight:900;line-height:1.3}
 .team-row{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 .team-row:last-of-type{margin-bottom:0}
 .flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;
@@ -205,6 +212,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   50% {opacity:0.6; transform:scale(1.35)}
   100%{opacity:1;   transform:scale(1)}
 }
+
+/* ══════════════════════════════════════════════════════
+   RWD — Mobile (< 768px)
+══════════════════════════════════════════════════════ */
+
+
+
+/* Tablet */
+
+
+/* Desktop */
+
+
+/* Panel display managed by both inline style (JS) and CSS class */
+.panel-group-desktop{flex:1;min-height:0;overflow:hidden}
+
+/* ══ RWD Mobile < 768px ══════════════════════════════════════════════════════ */
+
+/* ══ MOBILE RWD (max-width: 767px) ══════════════════════════════════════════ */
+
+
+/* Tablet */
+
+/* ══ MOBILE (≤ 767px) ═══════════════════════════════════════════════════ */
+
+
+/* Tablet */
+
+/* ══ Mobile: JS handles layout, CSS just provides base resets ══ */
+@media screen and (max-width: 767px) {
+  .map-toggle-btn {
+    display: flex !important;
+    width: 100%;
+    padding: 11px 16px;
+    background: #1e293b;
+    color: #93c5fd;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    border-bottom: 1px solid #334155;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-main { grid-template-columns: 30px 120px auto !important; }
+  .card-main > div:nth-child(3) { display: none !important; }
+  .bkt-card { width: 118px !important; }
+  .bkt-col  { width: 118px !important; }
+}
+
+/* Tablet */
+@media screen and (min-width: 768px) and (max-width: 1199px) {
+  .left-col { width: 320px; }
+}
 </style>
 </head>
 <body>
@@ -213,7 +277,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <!-- LEFT -->
 <div class="left-col">
-  <div class="map-block"><div id="map"></div></div>
+  <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap()" aria-expanded="false">
+    <span>🗺️ 地圖與場館資訊</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div class="map-block" id="mapBlock"><div id="map"></div></div>
   <div class="venue-block" id="venueBlock">
     <div class="venue-placeholder" id="vp">
       <div class="venue-placeholder-icon">🏟️</div>
@@ -230,10 +298,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="hdr-sub">台灣時間（UTC+8）· 小組賽 6/11–6/28 · 淘汰賽 6/29–7/19 · 💡 移到賽事卡片 → 左側地圖＆場館資訊即時更新</div>
   </div>
   <div class="stats">
-    <div class="stat"><div class="stat-val">72</div><div class="stat-lbl">🏆 小組賽事</div></div>
-    <div class="stat"><div class="stat-val">48</div><div class="stat-lbl">🌍 參賽隊伍</div></div>
-    <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">📋 分組數量</div></div>
-    <div class="stat"><div class="stat-val">16</div><div class="stat-lbl">🏟️ 比賽場館</div></div>
+    <div class="stat"><div class="stat-val">72</div><div class="stat-lbl">小組賽事</div></div>
+    <div class="stat"><div class="stat-val">48</div><div class="stat-lbl">參賽隊伍</div></div>
+    <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">分組數量</div></div>
+    <div class="stat"><div class="stat-val">16</div><div class="stat-lbl">比賽場館</div></div>
   </div>
   <!-- Tab Bar -->
   <div class="tab-bar">
@@ -241,7 +309,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button class="tab-btn" id="tabKO" onclick="switchTab('ko')">⚔️ 淘汰賽</button>
   </div>
   <!-- Group stage panel -->
-  <div id="panelGroup" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+  <div id="panelGroup" class="panel-group-desktop" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
     <div class="controls">
       <div class="group-btns" id="groupBtns"></div>
       <div class="filter-row">
@@ -382,8 +450,9 @@ const VENUES={
 const CCOL={ca:'#22D3EE',us:'#818CF8',mx:'#4ADE80'};
 const CNAME={ca:'🇨🇦 Canada',us:'🇺🇸 USA',mx:'🇲🇽 Mexico'};
 
-// ── Map setup ─────────────────────────────────────────────────────────────────
-const map=L.map('map',{
+const vMarkers={}; // declared outside try so always accessible
+try {
+const map=window._map=L.map('map',{
   center:[36,-97],zoom:3,minZoom:2,maxZoom:8,
   zoomControl:false,attributionControl:false,
   scrollWheelZoom:true,doubleClickZoom:true,dragging:true,
@@ -498,7 +567,6 @@ function labelIcon(city,col,active,ld){
   return L.divIcon({html,className:'',iconSize:size,iconAnchor:anchor});
 }
 
-const vMarkers={};
 Object.entries(VENUES).forEach(([venue,geo])=>{
   const col=CCOL[geo.c];
   // Dot
@@ -526,6 +594,12 @@ function deactivatePin(venue){
   vm.lbl.setIcon(labelIcon(vm.geo.city,vm.col,false,vm.geo.ld));
   vm.lbl.setZIndexOffset(10);
 }
+} catch(e) {
+  console.warn('Map initialization failed:', e);
+  // Hide map block if Leaflet unavailable
+  const mb=document.getElementById('mapBlock');
+  if(mb) mb.style.display='none';
+}
 
 // ── Venue info ────────────────────────────────────────────────────────────────
 function showVenueInfo(venue){
@@ -534,11 +608,12 @@ function showVenueInfo(venue){
   document.getElementById('vp').style.display='none';
   const vc=document.getElementById('vc');
   vc.style.display='block';
+  // Use background-image to avoid portrait-photo whitespace issues
+  // referrerpolicy handled via fetch + object URL, or just try direct (StadiumDB loads fine in browser)
+  const heroBg=v.photo?`background-image:url('${v.photo}');`:'';
   vc.innerHTML=`
     <div class="venue-hero-wrap">
-      <img class="venue-hero" src="${v.photo}" alt="${venue}"
-        referrerpolicy="no-referrer"
-        onerror="this.style.background='#e2e8f0';this.style.height='80px'">
+      <div class="venue-hero" style="${heroBg}background-size:cover;background-position:center center;background-repeat:no-repeat;background-color:#e2e8f0"></div>
       <div class="venue-country-badge" style="background:${col};color:#0f172a">${CNAME[v.c]}</div>
     </div>
     <div class="venue-body">
@@ -1141,9 +1216,9 @@ function render(){
       card.style.cssText=`background:${t.bg};border-color:${t.bdr};border-left:5px solid ${t.bdr}`;
       card.innerHTML=`
         <div class="card-main">
-          <div class="grp-badge" style="background:${t.bbg};align-self:start;margin-top:2px">
-            <div class="grp-word" style="color:${t.btxt}">GROUP</div>
-            <div class="grp-letter" style="color:${t.btxt}">${m.g}</div>
+          <div class="grp-badge" style="align-self:start;margin-top:3px">
+            <div class="grp-dot" style="background:${t.bdr}"></div>
+            <div class="grp-txt" style="color:${t.bdr}">GRP<br>${m.g}</div>
           </div>
           <div>
             ${teamHTML(m.t1,m.c1)}
@@ -1180,11 +1255,89 @@ function render(){
 }
 render();
 
+// ── Mobile map/venue toggle ───────────────────────────────────────────────────
+function toggleMap(){
+  const btn=document.getElementById('mapToggleBtn');
+  const mapBlock=document.getElementById('mapBlock');
+  const vb=document.getElementById('venueBlock');
+  if(!btn||!mapBlock||!vb) return;
+  const isOpen=mapBlock.dataset.mobileOpen==='1';
+  if(!isOpen){
+    mapBlock.dataset.mobileOpen='1';
+    mapBlock.style.cssText='height:'+Math.round(window.innerHeight*0.38)+'px;overflow:hidden;transition:height 0.3s';
+    vb.style.cssText='height:auto;max-height:55vh;overflow-y:auto;transition:height 0.3s';
+    btn.querySelector('.arrow').textContent='▲';
+    setTimeout(()=>{ if(window._map) window._map.invalidateSize(); },320);
+  } else {
+    delete mapBlock.dataset.mobileOpen;
+    mapBlock.style.cssText='height:0;overflow:hidden;transition:height 0.3s';
+    vb.style.cssText='height:0;overflow:hidden;transition:height 0.3s';
+    btn.querySelector('.arrow').textContent='▼';
+  }
+}
+
+// Mobile layout: handled by CSS media queries
+// ── Mobile layout: direct JS DOM manipulation ─────────────────────────────────
+function applyMobileLayout(){
+  const isMobile=window.innerWidth<768;
+  const body=document.body;
+  const leftCol=document.querySelector('.left-col');
+  const rightCol=document.querySelector('.right-col');
+  const mapBlock=document.getElementById('mapBlock');
+  const vb=document.getElementById('venueBlock');
+  const pg=document.getElementById('panelGroup');
+  const pk=document.getElementById('panelKO');
+  const mw=document.querySelector('.matches-wrap');
+  const koWrap=document.querySelector('.ko-wrap');
+
+  if(isMobile){
+    // Body: vertical block, scrollable
+    body.style.cssText='display:block;height:auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch';
+    // Left col: full width block
+    leftCol.style.cssText='display:block;width:100%;height:auto;overflow:visible;border-right:none;border-bottom:1px solid #1e293b';
+    // Map: hidden by default
+    if(!mapBlock.dataset.mobileOpen){
+      mapBlock.style.cssText='height:0;overflow:hidden;transition:height 0.3s';
+      vb.style.cssText='height:0;overflow:hidden;transition:height 0.3s';
+    }
+    // Right col: full width block
+    rightCol.style.cssText='display:block;width:100%;height:auto;overflow:visible';
+    // Panels: block, natural height
+    pg.style.cssText='display:block;flex:none;height:auto;overflow:visible;min-height:0';
+    if(pk.style.display!=='none') pk.style.cssText='display:block;flex:none;height:auto;overflow:visible';
+    // Matches wrap: natural height
+    if(mw) mw.style.cssText='display:block;flex:none;height:auto;max-height:none;overflow:visible';
+    if(koWrap) koWrap.style.cssText='display:block;flex:none;height:auto;overflow:visible';
+  } else {
+    // Desktop: remove all inline overrides
+    [body,leftCol,rightCol,pg,pk].forEach(el=>{ if(el) el.removeAttribute('style'); });
+    if(mapBlock){ mapBlock.removeAttribute('style'); delete mapBlock.dataset.mobileOpen; }
+    if(vb) vb.removeAttribute('style');
+    if(mw) mw.removeAttribute('style');
+    if(koWrap) koWrap.removeAttribute('style');
+    if(window._map) setTimeout(()=>window._map.invalidateSize(),100);
+  }
+}
+window.addEventListener('DOMContentLoaded', applyMobileLayout);
+window.addEventListener('resize', applyMobileLayout);
+
 // ══ Tab switching ══════════════════════════════════════════════════════════════
 function switchTab(tab){
   const isGroup=tab==='group';
-  document.getElementById('panelGroup').style.display=isGroup?'flex':'none';
-  document.getElementById('panelKO').style.display=isGroup?'none':'flex';
+  const pg=document.getElementById('panelGroup');
+  const pk=document.getElementById('panelKO');
+  const isMobile=window.innerWidth<768;
+  if(isMobile){
+    pg.style.display=isGroup?'block':'none';
+    pk.style.display=isGroup?'none':'block';
+    // Re-apply overflow fixes after display change
+    if(isGroup && pk.style.display==='none'){
+      pg.style.overflow='visible'; pg.style.height='auto';
+    }
+  } else {
+    pg.style.display=isGroup?'flex':'none';
+    pk.style.display=isGroup?'none':'flex';
+  }
   document.getElementById('tabGroup').classList.toggle('active',isGroup);
   document.getElementById('tabKO').classList.toggle('active',!isGroup);
   if(!isGroup) renderKO();
@@ -1200,20 +1353,20 @@ const KO_ROUNDS=[
   {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
     {id:'M73',date:'6/28 週日',time:'04:00',home:tbd('A2'),away:tbd('B2'),venue:'SoFi Stadium'},
     {id:'M75',date:'6/29 週一',time:'10:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
-    {id:'M74',date:'6/29 週一',time:'05:30',home:tbd('E1'),away:tbd('最佳第3 C'),venue:'Gillette Stadium'},
-    {id:'M77',date:'6/30 週二',time:'06:00',home:tbd('I1'),away:tbd('最佳第3 G'),venue:'MetLife Stadium'},
+    {id:'M74',date:'6/29 週一',time:'05:30',home:tbd('E1'),away:tbd('最佳第3（ABCDF）'),venue:'Gillette Stadium'},
+    {id:'M77',date:'6/30 週二',time:'06:00',home:tbd('I1'),away:tbd('最佳第3（CDFGH）'),venue:'MetLife Stadium'},
     {id:'M76',date:'6/29 週一',time:'02:00',home:tbd('C1'),away:tbd('F2'),venue:'NRG Stadium'},
     {id:'M78',date:'6/30 週二',time:'02:00',home:tbd('E2'),away:tbd('I2'),venue:'AT&T Stadium'},
-    {id:'M79',date:'6/30 週二',time:'10:00',home:tbd('A1'),away:tbd('最佳第3 H'),venue:'Estadio Azteca'},
-    {id:'M80',date:'7/01 週三',time:'01:00',home:tbd('L1'),away:tbd('最佳第3 E'),venue:'Mercedes-Benz Stadium'},
+    {id:'M79',date:'6/30 週二',time:'10:00',home:tbd('A1'),away:tbd('最佳第3（CEFHI）'),venue:'Estadio Azteca'},
+    {id:'M80',date:'7/01 週三',time:'01:00',home:tbd('L1'),away:tbd('最佳第3（EHIJK）'),venue:'Mercedes-Benz Stadium'},
     {id:'M83',date:'7/02 週四',time:'08:00',home:tbd('K2'),away:tbd('L2'),venue:'BMO Field'},
     {id:'M84',date:'7/02 週四',time:'04:00',home:tbd('H1'),away:tbd('J2'),venue:'SoFi Stadium'},
-    {id:'M81',date:'7/01 週三',time:'09:00',home:tbd('D1'),away:tbd('最佳第3 B'),venue:"Levi's Stadium"},
-    {id:'M82',date:'7/01 週三',time:'05:00',home:tbd('G1'),away:tbd('最佳第3 A'),venue:'Lumen Field'},
+    {id:'M81',date:'7/01 週三',time:'09:00',home:tbd('D1'),away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
+    {id:'M82',date:'7/01 週三',time:'05:00',home:tbd('G1'),away:tbd('最佳第3（AEHIJ）'),venue:'Lumen Field'},
     {id:'M86',date:'7/03 週五',time:'07:00',home:tbd('J1'),away:tbd('H2'),venue:'Hard Rock Stadium'},
     {id:'M88',date:'7/03 週五',time:'03:00',home:tbd('D2'),away:tbd('G2'),venue:'AT&T Stadium'},
-    {id:'M85',date:'7/03 週五',time:'00:00',home:tbd('B1'),away:tbd('最佳第3 F'),venue:'BC Place'},
-    {id:'M87',date:'7/03 週五',time:'10:30',home:tbd('K1'),away:tbd('最佳第3 D'),venue:'Arrowhead Stadium'},
+    {id:'M85',date:'7/03 週五',time:'00:00',home:tbd('B1'),away:tbd('最佳第3（DEIJL）'),venue:'BC Place'},
+    {id:'M87',date:'7/03 週五',time:'10:30',home:tbd('K1'),away:tbd('最佳第3（DEIJL）'),venue:'Arrowhead Stadium'},
   ]},
   // R16: display order matches R32 bracket pairs (M90,M89,M91,M92,M93,M94,M95,M96)
   // QF pairs: (M90,M89)→M97, (M91,M92)→M99, (M93,M94)→M98, (M95,M96)→M100
@@ -1421,191 +1574,171 @@ function makeBktCard(m){
 }
 
 // ── SVG connector ─────────────────────────────────────────────────────────────
-function drawBktConnectors(leftCards,rightCards,pairs,connEl){
-  // Called synchronously after positions are set — no extra rAF needed
-  const cr=connEl.getBoundingClientRect();
-  const totalH=connEl.offsetHeight||500;
-  const svgNS='http://www.w3.org/2000/svg';
-  const svg=document.createElementNS(svgNS,'svg');
-  const W=32;
-  svg.setAttribute('width',W); svg.setAttribute('height',totalH);
-  svg.style.cssText='position:absolute;top:0;left:0;overflow:visible;pointer-events:none';
-  pairs.forEach(([ia,ib],k)=>{
-    const lca=leftCards[ia],lcb=leftCards[ib],rc=rightCards[k];
-    if(!lca||!lcb||!rc) return;
-    const ra=lca.getBoundingClientRect(),rb=lcb.getBoundingClientRect(),rrc=rc.getBoundingClientRect();
-    const ya=(ra.top+ra.bottom)/2-cr.top;
-    const yb=(rb.top+rb.bottom)/2-cr.top;
-    const yMid=(ya+yb)/2;
-    const p=document.createElementNS(svgNS,'path');
-    p.setAttribute('d',`M0,${ya} H${W/2} V${yMid} M0,${yb} H${W/2} V${yMid} M${W/2},${yMid} H${W}`);
-    p.setAttribute('fill','none');p.setAttribute('stroke','#94a3b8');
-    p.setAttribute('stroke-width','1.5');p.setAttribute('stroke-linejoin','round');
-    svg.appendChild(p);
-  });
-  connEl.appendChild(svg);
+// ── Pure-math bracket renderer ─────────────────────────────────────────────────
+// Everything is positioned by formula, no getBoundingClientRect needed.
+// R32 col: LABEL_H + 16*(CARD_H+GAP) tall
+// Each card in col i sits at:  LABEL_H + k*(CARD_H+GAP)   (k = index in that col)
+// For right cols, card k is centred between left cards[ia] and left cards[ib]:
+//   topY = LABEL_H + (ia+ib)/2*(CARD_H+GAP) + CARD_H/2 - CARD_H/2
+//         = LABEL_H + (ia+ib)/2*(CARD_H+GAP)
+// The connector SVG column sits between two card columns and is 32px wide.
+// Its height = left col height.
+
+const CARD_H=74, GAP=8, LABEL_H=26, CONN_W=32;
+
+function colHeight(n){ return LABEL_H + n*(CARD_H+GAP); }
+// Y-centre of card k in a column (absolute within the column)
+function cardMid(k){ return LABEL_H + k*(CARD_H+GAP) + CARD_H/2; }
+// Y-top of card k
+function cardTop(k){ return LABEL_H + k*(CARD_H+GAP); }
+// Right-col card k is centred between left cards ia and ib
+function rightCardTop(ia,ib){ return (cardMid(ia)+cardMid(ib))/2 - CARD_H/2; }
+
+// Build one card element
+function makeBktCard(m){
+  const cls=m.isFinal?'bkt-card final-card':m.isThird?'bkt-card third-card':'bkt-card';
+  const fullVenue=VENUE_SHORT_MAP[m.venue]||m.venue;
+  const el=document.createElement('div');
+  el.className=cls; el.dataset.venue=fullVenue;
+  const mk=t=>t.tbd
+    ?`<div class="bkt-tbd">${t.name}</div>`
+    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>`;
+  el.innerHTML=`
+    <div class="bkt-card-hdr">
+      <span class="bkt-mid">${m.id||''}</span>
+      <span class="bkt-time">${m.date.split(' ')[0]} ${m.time}</span>
+    </div>
+    <div class="bkt-team">${mk(m.home)}</div>
+    <div class="bkt-team">${mk(m.away)}</div>
+    <div class="bkt-venue">📍 ${m.venue}</div>`;
+  const vm=vMarkers[fullVenue]; const col=vm?vm.col:'#818CF8';
+  el.addEventListener('mouseenter',()=>{el.style.outline=`2px solid ${col}`;showHighlight(fullVenue);showVenueInfo(fullVenue);});
+  el.addEventListener('mouseleave',()=>{el.style.outline='none';hideHighlight();});
+  return el;
 }
 
-// ── Build one display column ──────────────────────────────────────────────────
-const CARD_H=74, GAP=8, LABEL_H=26;
-
-// Build a column with no vertical positioning (first pass)
-function buildBktCol(matches,label,labelCls){
+// Build a column with absolute-positioned cards
+function buildCol(matches, label, labelCls, topFn){
   const col=document.createElement('div');
   col.className='bkt-col';
+  col.style.cssText='position:relative;flex-shrink:0;width:136px';
   const lbl=document.createElement('div');
   lbl.className='bkt-col-label'+(labelCls?' '+labelCls:'');
   lbl.textContent=label;
   col.appendChild(lbl);
   const cards=[];
-  matches.forEach(m=>{
-    const slot=document.createElement('div');
-    slot.style.marginBottom=GAP+'px';
+  matches.forEach((m,k)=>{
+    const top=topFn(k);
     const card=makeBktCard(m);
-    slot.appendChild(card);
-    col.appendChild(slot);
+    card.style.cssText=`position:absolute;top:${top}px;left:0;width:136px`;
+    col.appendChild(card);
     cards.push(card);
   });
   return{col,cards};
 }
 
-// After DOM layout, position right-col cards to vertically centre between their left-col pair
-function centerCards(rightCards,leftCards,pairs,panelEl){
+// Build SVG connector between left col and right col
+// pairs: array of [leftIdxA, leftIdxB] → rightIdx k
+function buildConn(pairs, leftTopFn, rightTopFn, colH){
+  const W=CONN_W;
+  const svgNS='http://www.w3.org/2000/svg';
+  const div=document.createElement('div');
+  div.className='bkt-conn';
+  div.style.cssText=`width:${W}px;flex-shrink:0;position:relative;height:${colH}px`;
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width',W);svg.setAttribute('height',colH);
+  svg.style.cssText='position:absolute;top:0;left:0;overflow:visible';
   pairs.forEach(([ia,ib],k)=>{
-    const lca=leftCards[ia], lcb=leftCards[ib], rc=rightCards[k];
-    if(!lca||!lcb||!rc) return;
-    const ra=lca.getBoundingClientRect();
-    const rb=lcb.getBoundingClientRect();
-    const pr=panelEl.getBoundingClientRect();
-    const midY=(ra.top+ra.bottom)/2/2 + (rb.top+rb.bottom)/2/2 - pr.top + panelEl.scrollTop;
-    // midY = average of the two card midpoints relative to panel
-    const midActual=((ra.top+ra.bottom)+(rb.top+rb.bottom))/4 - pr.top + panelEl.scrollTop;
-    rc.parentElement.style.position='absolute';
-    rc.parentElement.style.top=(midActual - CARD_H/2)+'px';
-    rc.parentElement.style.left='0';
-    rc.parentElement.style.marginBottom='0';
+    const ya=leftTopFn(ia)+CARD_H/2;
+    const yb=leftTopFn(ib)+CARD_H/2;
+    const yMid=(ya+yb)/2;
+    const yr=rightTopFn(k)+CARD_H/2;
+    const p=document.createElementNS(svgNS,'path');
+    // bracket: left card a → half, left card b → half, both meet at yMid, then go to right card yr
+    p.setAttribute('d',`M0,${ya} H${W/2} V${yMid} M0,${yb} H${W/2} V${yMid} M${W/2},${yMid} V${yr} H${W}`);
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke','#94a3b8');
+    p.setAttribute('stroke-width','1.5');
+    p.setAttribute('stroke-linejoin','round');
+    svg.appendChild(p);
   });
+  div.appendChild(svg);
+  return div;
 }
 
-// ── Main render ───────────────────────────────────────────────────────────────
+// ── Main render ──────────────────────────────────────────────────────────────
 function renderKO(){
   const el=document.getElementById('koContent');
   if(el.dataset.built) return;
   el.dataset.built='1';
 
-  const r32m=KO_ROUNDS[0].matches, r16m=KO_ROUNDS[1].matches,
-        qfm=KO_ROUNDS[2].matches,  sfm=KO_ROUNDS[3].matches,
-        thirdm=KO_ROUNDS[4].matches,finm=KO_ROUNDS[5].matches;
+  const r32m=KO_ROUNDS[0].matches;
+  const r16m=KO_ROUNDS[1].matches;
+  const qfm =KO_ROUNDS[2].matches;
+  const sfm =KO_ROUNDS[3].matches;
+  const thirdm=KO_ROUNDS[4].matches;
+  const finm =KO_ROUNDS[5].matches;
 
-  const r32=reorder(r32m,BRACKET_R32_ORDER);
-  const r16=reorder(r16m,BRACKET_R16_ORDER);
-  const qf =reorder(qfm, BRACKET_QF_ORDER);
-  const sf =reorder(sfm, BRACKET_SF_ORDER);
+  // Reorder
+  const r32=reorder(r32m,BRACKET_R32_ORDER); // 16 cards
+  const r16=reorder(r16m,BRACKET_R16_ORDER); // 8 cards
+  const qf =reorder(qfm, BRACKET_QF_ORDER);  // 4 cards
+  const sf =reorder(sfm, BRACKET_SF_ORDER);  // 2 cards
 
-  // ── Build all columns (no vertical offset yet) ─────────────────────────────
-  const colDefs=[
-    {matches:r32,  label:'Round of 32',   cls:''},
-    {matches:r16,  label:'Round of 16',   cls:'next'},
-    {matches:qf,   label:'Quarter-final', cls:'qf'},
-    {matches:sf,   label:'Semi-final',    cls:'sf'},
-    {matches:finm, label:'Final 🏆',      cls:'final'},
-  ];
-  const allCardSets=[], allColEls=[];
+  // topFn for each column:
+  // R32: straight sequential
+  const r32Top = k=>cardTop(k);
+  // R16: centred between its R32 pair
+  const r32p=BRACKET_R32_PAIRS;
+  const r16Top = k=>rightCardTop(r32p[k][0],r32p[k][1]);
+  // QF: centred between its R16 pair
+  const r16p=BRACKET_R16_PAIRS;
+  const qfTop  = k=>{ const [ia,ib]=r16p[k]; return (r16Top(ia)+r16Top(ib))/2+CARD_H/2-CARD_H/2; };
+  // SF: centred between its QF pair
+  const qfp=BRACKET_QF_PAIRS;
+  const sfTop  = k=>{ const [ia,ib]=qfp[k]; return (qfTop(ia)+qfTop(ib))/2+CARD_H/2-CARD_H/2; };
+  // Final: pin to just below label
+  const finTop = k=>LABEL_H;
+  // SF midpoints for connector:
+  const sfMid0=sfTop(0)+CARD_H/2;
+  const sfMid1=sfTop(1)+CARD_H/2;
 
-  colDefs.forEach((c,i)=>{
-    const {col,cards}=buildBktCol(c.matches,c.label,c.cls);
-    // Cols 1+ need relative positioning for their slots to be absolute-positioned later
-    if(i>0) col.style.position='relative';
-    allCardSets.push(cards);
-    allColEls.push(col);
-    el.appendChild(col);
-    if(i<colDefs.length-1){
-      const conn=document.createElement('div');
-      conn.className='bkt-conn';
-      conn.style.cssText='width:32px;flex-shrink:0;align-self:stretch;position:relative';
-      el.appendChild(conn);
-    }
-  });
+  const r32H=colHeight(16);
+  // Right cols get same height as R32 so connectors span correctly
+  const colH=r32H;
 
-  // Third-place below Final
-  const finColEl=allColEls[allColEls.length-1];
-  const thirdLbl=document.createElement('div');
-  thirdLbl.className='bkt-col-label';
-  thirdLbl.style.cssText='background:#047857;margin-top:20px;margin-bottom:8px';
-  thirdLbl.textContent='Third-place';
-  const thirdCard=makeBktCard(thirdm[0]);
-  finColEl.appendChild(thirdLbl);
-  finColEl.appendChild(thirdCard);
+  // Build columns
+  const {col:c0,cards:cards0}=buildCol(r32, 'Round of 32',   '',      r32Top);
+  const {col:c1,cards:cards1}=buildCol(r16, 'Round of 16',   'next',  r16Top);
+  const {col:c2,cards:cards2}=buildCol(qf,  'Quarter-final', 'qf',    qfTop);
+  const {col:c3,cards:cards3}=buildCol(sf,  'Semi-final',    'sf',    sfTop);
+  const {col:c4,cards:cards4}=buildCol(finm,'Final 🏆',      'final', finTop);
 
-  // ── After layout: 3-pass approach ──────────────────────────────────────────
-  // Pass 1: set col heights
-  // Pass 2: position all cards using real DOM coords
-  // Pass 3: draw all SVG connectors using real DOM coords
-  const pairsPerConn=[BRACKET_R32_PAIRS,BRACKET_R16_PAIRS,BRACKET_QF_PAIRS,BRACKET_SF_PAIRS];
+  // Set heights
+  [c0,c1,c2,c3].forEach(c=>c.style.height=colH+'px');
+  // Final col: tall enough for Final + gap + Third-place
+  const finColH=LABEL_H+CARD_H+48+LABEL_H+CARD_H+16;
+  c4.style.height=finColH+'px';
 
-  // Pass 1 — set heights so absolute positioning has a reference container
-  requestAnimationFrame(()=>{
-    // R16,QF,SF cols: match height of their left col
-    [1,2,3].forEach(i=>{
-      allColEls[i].style.height=allColEls[i-1].offsetHeight+'px';
-    });
-    // Final col: tall enough for Final card + gap + Third-place
-    allColEls[4].style.height=(LABEL_H+CARD_H+48+LABEL_H+CARD_H+20)+'px';
+  // Add Third-place to Final col
+  const tpLbl=document.createElement('div');
+  tpLbl.className='bkt-col-label';
+  tpLbl.style.cssText=`position:absolute;top:${LABEL_H+CARD_H+40}px;left:0;background:#047857;width:136px`;
+  tpLbl.textContent='Third-place';
+  const tpCard=makeBktCard(thirdm[0]);
+  tpCard.style.cssText=`position:absolute;top:${LABEL_H+CARD_H+40+LABEL_H+4}px;left:0;width:136px`;
+  c4.appendChild(tpLbl);
+  c4.appendChild(tpCard);
 
-    // Pass 2 — position cards using real coords
-    requestAnimationFrame(()=>{
+  // Build connectors (pure math)
+  const conn0=buildConn(BRACKET_R32_PAIRS, r32Top, r16Top, colH);
+  const conn1=buildConn(BRACKET_R16_PAIRS, r16Top, qfTop,  colH);
+  const conn2=buildConn(BRACKET_QF_PAIRS,  qfTop,  sfTop,  colH);
+  // SF→Final: M101(k=0) + M102(k=1) → M104(k=0, pinned at LABEL_H)
+  const conn3=buildConn(BRACKET_SF_PAIRS,  sfTop,  finTop, colH);
 
-      // R16, QF, SF: centre each card between its pair in prev col
-      [0,1,2].forEach(i=>{
-        const pairs=pairsPerConn[i];
-        const leftCards=allCardSets[i];
-        const rightCards=allCardSets[i+1];
-        const rightCol=allColEls[i+1];
-        const rRect=rightCol.getBoundingClientRect();
-        pairs.forEach(([ia,ib],k)=>{
-          const lca=leftCards[ia], lcb=leftCards[ib], rc=rightCards[k];
-          if(!lca||!lcb||!rc) return;
-          const ra=lca.getBoundingClientRect();
-          const rb=lcb.getBoundingClientRect();
-          const midY=((ra.top+ra.bottom)+(rb.top+rb.bottom))/4 - rRect.top;
-          const slot=rc.parentElement;
-          slot.style.cssText=`position:absolute;top:${Math.max(LABEL_H,midY-CARD_H/2)}px;left:0;margin:0`;
-        });
-      });
-
-      // Final card: pin to top (just below label)
-      const finCard=allCardSets[4][0];
-      if(finCard){
-        const slot=finCard.parentElement;
-        slot.style.cssText=`position:absolute;top:${LABEL_H}px;left:0;margin:0`;
-      }
-      // Third-place: below Final card + 48px gap
-      const finChildren=Array.from(finColEl.children);
-      let thirdOffset=LABEL_H+CARD_H+48;
-      let passedSlot=false;
-      finChildren.forEach((ch,idx)=>{
-        if(idx===0) return; // skip main label
-        if(!passedSlot && ch.tagName==='DIV' && ch.children[0]&&ch.children[0].classList.contains('bkt-card')){
-          passedSlot=true; return; // skip final card slot
-        }
-        // third-place label and card
-        ch.style.cssText=`position:absolute;left:0;top:${thirdOffset}px;margin:0`;
-        thirdOffset+=ch.offsetHeight||CARD_H;
-      });
-
-      // Pass 3 — draw SVG connectors (all cols now have correct positions)
-      requestAnimationFrame(()=>{
-        const connEls=el.querySelectorAll('.bkt-conn');
-        connEls.forEach((conn,i)=>{
-          if(!allCardSets[i]||!allCardSets[i+1]) return;
-          // Set connector height to match left col
-          const leftCol=allColEls[i];
-          conn.style.height=leftCol.offsetHeight+'px';
-          drawBktConnectors(allCardSets[i],allCardSets[i+1],pairsPerConn[i],conn);
-        });
-      });
-    });
-  });
+  // Append in order
+  [c0,conn0,c1,conn1,c2,conn2,c3,conn3,c4].forEach(n=>el.appendChild(n));
 }
 </script>
 </body>
