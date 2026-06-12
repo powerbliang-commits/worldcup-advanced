@@ -1673,36 +1673,35 @@ function renderStandings(){
 
     teams.forEach(function(tm,i){
       const rowBg='rgba(255,255,255,.02)';
-      const borderL='#1a2540';
-      const rkColor='#2a3a5a';
+      const borderL='#334155';
+      const rkColor='#94a3b8';
       const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
-      // Form dots: array of 'W','D','L','-'
-      const formArr=(tm.form||['-','-','-','-','-']).slice(-5);
-      while(formArr.length<5) formArr.unshift('-');
-      const formDotColor={'W':'#10B981','D':'#94a3b8','L':'#ef4444','-':'#1e293b'};
+      const formArr=(tm.form||[]).slice(-5).reverse();
+      while(formArr.length<5) formArr.push('-');
+      const formDotColor={'W':'#00FF00','D':'#94a3b8','L':'#FF0000','-':'#1e3a5f'};
       const formHtml='<div style="display:flex;align-items:center;justify-content:center;gap:2px">'
         +formArr.map(function(r){return '<span style="width:8px;height:8px;border-radius:50%;background:'+formDotColor[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
         +'</div>';
-      const gdColor=tm.gd>0?'#10B981':tm.gd<0?'#f87171':'#3a5070';
-      const ptsColor=i<2?'#fbbf24':i===2?'#f97316':'#94a3b8';
+      const gdColor=tm.gd>0?'#34d399':tm.gd<0?'#f87171':'#94a3b8';
+      const ptsColor=i<2?'#fbbf24':i===2?'#fb923c':'#64748b';
       const isLast=i===teams.length-1;
-      h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:9px 13px;'
-        +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.06)')+';'
+      h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 12px;'
+        +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.07)')+';'
         +'border-left:4px solid '+borderL+';background:'+rowBg+'">'
         +'<div style="display:flex;align-items:center;gap:7px;min-width:0">'
-        +'<span style="font-size:12px;font-weight:900;color:'+rkColor+';width:14px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+rkColor+';width:14px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
         +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:22px;height:15px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.2);flex-shrink:0" onerror="this.style.display=\'none\'">'
-        +'<span style="font-size:13px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
+        +'<span style="font-size:13px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
         +'</div>'
         +'<div style="display:grid;grid-template-columns:repeat(7,22px) 30px 54px;text-align:center;align-items:center">'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.mp+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.w+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.d+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.l+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.gf+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:#3a5070">'+tm.ga+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:'+gdColor+'">'+gdStr+'</span>'
-        +'<span style="font-size:13px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.13);border-radius:4px;padding:1px 0">'+tm.pts+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.mp+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.w+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.d+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.l+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.gf+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.ga+'</span>'
+        +'<span style="font-size:12px;font-weight:800;color:'+gdColor+'">'+gdStr+'</span>'
+        +'<span style="font-size:13px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.15);border-radius:4px;padding:1px 0">'+tm.pts+'</span>'
         +formHtml
         +'</div></div>';
     });
@@ -1775,8 +1774,8 @@ function renderStandings(){
     const t=GT[tm.group];
 
     // form dots
-    const formArr=(tm.form||['-','-','-','-','-']).slice(-5);
-    while(formArr.length<5) formArr.unshift('-');
+    const formArr=(tm.form||[]).slice(-5).reverse();
+    while(formArr.length<5) formArr.push('-');
     const fdc={'W':'#10B981','D':'#94a3b8','L':'#ef4444','-':'#1e293b'};
     const formHtmlT='<div style="display:flex;align-items:center;justify-content:center;gap:2px">'
       +formArr.map(function(r){return '<span style="width:7px;height:7px;border-radius:50%;background:'+fdc[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
