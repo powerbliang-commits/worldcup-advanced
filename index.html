@@ -2325,49 +2325,17 @@ function applyStandingsData(data){
   if(wrap) wrap.dataset.lastGroup = '';
 }
 
-// ── 呼叫 Claude API 抓最新積分 ────────────────────────────────────────────────
+// ── 呼叫 Cloudflare Worker 抓最新積分 ─────────────────────────────────────────
 async function fetchStandingsFromAPI(){
   const badge = document.getElementById('updateBadge');
   if(badge){ badge.textContent='更新中...'; badge.style.display='inline-block'; badge.style.color='#fbbf24'; }
 
-  const prompt = `請使用 web_search 工具搜尋「FIFA World Cup 2026 group standings」，從 fifa.com 或可靠來源抓取最新各組積分資料。
-
-回傳純 JSON，不要有任何說明或 markdown 包裝，格式如下：
-{
-  "updated": "2026-06-12",
-  "source": "資料來源網址",
-  "groups": {
-    "A": [{"zh":"墨西哥","code":"mx","mp":1,"w":1,"d":0,"l":0,"gf":2,"ga":0,"form":["W"]},
-          {"zh":"南韓","code":"kr","mp":1,"w":0,"d":1,"l":0,"gf":1,"ga":1,"form":["D"]},
-          {"zh":"南非","code":"za","mp":1,"w":0,"d":1,"l":0,"gf":1,"ga":1,"form":["D"]},
-          {"zh":"捷克","code":"cz","mp":1,"w":0,"d":0,"l":1,"gf":0,"ga":2,"form":["L"]}],
-    "B": [...], "C": [...], "D": [...], "E": [...], "F": [...],
-    "G": [...], "H": [...], "I": [...], "J": [...], "K": [...], "L": [...]
-  }
-}
-
-請確保回傳A到L共12組每組4隊的完整資料。回傳必須是可被JSON.parse解析的純JSON。`;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:prompt}]
-      })
-    });
+    const res = await fetch('https://cool-rice-7f3d.power-b-liang.workers.dev/');
+    if(!res.ok) throw new Error('Worker 連線失敗: ' + res.status);
 
-    if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||'API error'); }
-
-    const data = await res.json();
-    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const match = text.match(/\{[\s\S]*?"groups"[\s\S]*\}/);
-    if(!match) throw new Error('無法解析 JSON');
-
-    const parsed = JSON.parse(match[0]);
+    const parsed = await res.json();
+    if(parsed.error) throw new Error(parsed.error);
     if(!parsed.groups || Object.keys(parsed.groups).length < 6)
       throw new Error('資料不完整（僅'+Object.keys(parsed.groups||{}).length+'組）');
 
