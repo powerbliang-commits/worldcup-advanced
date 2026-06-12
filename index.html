@@ -1710,7 +1710,7 @@ function renderStandings(){
   h+='</div>';
 
   // ── 第3名跨組排行榜 ─────────────────────────────────────────────────────
-  // Step 1: get each group's 3rd place team (index 2 after sorting)
+  // Step 1: 取每組第3名與第4名丟入 pool（共最多24隊）
   const thirdPlaces=[];
   'ABCDEFGHIJKL'.split('').forEach(function(g){
     const sorted=[...STANDINGS[g]].map(function(tm){
@@ -1718,11 +1718,16 @@ function renderStandings(){
     }).sort(function(a,b){
       return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf;
     });
-    if(sorted[2]) thirdPlaces.push(sorted[2]);
+    if(sorted[2]) thirdPlaces.push(Object.assign({},sorted[2],{groupRank:3}));
+    if(sorted[3]) thirdPlaces.push(Object.assign({},sorted[3],{groupRank:4}));
   });
 
   // Step 2: rank 12 third-place teams by FIFA rules: Pts→GD→GF→fair_play→fifa_rank
+  // 有出賽資料的隊伍優先排在前面
   thirdPlaces.sort(function(a,b){
+    const aPlayed=a.mp>0?1:0;
+    const bPlayed=b.mp>0?1:0;
+    if(bPlayed!==aPlayed) return bPlayed-aPlayed; // 有出賽的排前面
     if(b.pts!==a.pts) return b.pts-a.pts;
     if(b.gd!==a.gd) return b.gd-a.gd;
     if(b.gf!==a.gf) return b.gf-a.gf;
@@ -1740,69 +1745,66 @@ function renderStandings(){
   h+='<div style="margin-top:0">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
     +'<span style="font-size:14px;font-weight:900;color:#e2e8f0;letter-spacing:.03em">🏅 第3名跨組排行</span>'
-    +'<span style="font-size:11px;color:#64748b;font-weight:600">前8名晉級 R32</span>'
+    +'<span style="font-size:11px;color:#64748b;font-weight:600">各組第3、4名共24隊，前8名晉級 R32</span>'
     +'</div>'
     +'<div style="background:rgba(10,18,40,0.86);border:1px solid rgba(99,130,255,.18);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5)">'
     // Header
-    +'<div style="padding:8px 13px;display:flex;align-items:center;background:rgba(30,40,80,0.9);border-bottom:1px solid rgba(99,130,255,.15)">'
-    +'<span style="font-size:11px;font-weight:700;color:#94a3b8;flex:1">隊伍</span>'
-    +'<div style="display:grid;grid-template-columns:24px 24px repeat(7,22px) 30px 54px;text-align:center;gap:0">'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">組</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">排</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">P</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">W</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">D</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">L</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">GF</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">GA</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">GD</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#fbbf24">Pts</span>'
-    +'<span style="font-size:9px;font-weight:700;color:#94a3b8">Form</span>'
+    +'<div style="padding:8px 20px;display:flex;align-items:center;background:rgba(30,40,80,0.9);border-bottom:1px solid rgba(99,130,255,.2)">'
+    +'<span style="font-size:13px;font-weight:800;color:#cbd5e1;flex:1;letter-spacing:.05em">隊伍</span>'
+    +'<div style="display:grid;grid-template-columns:36px repeat(7,34px) 44px 70px;text-align:center;gap:0">'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">組</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">P</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">W</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">D</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">L</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">GF</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">GA</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">GD</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#fbbf24">Pts</span>'
+    +'<span style="font-size:11px;font-weight:800;color:#94a3b8">Form</span>'
     +'</div></div>';
 
   thirdPlaces.forEach(function(tm,i){
     const isThrough=i<8;
     const rowBg=isThrough?'rgba(245,158,11,.07)':'rgba(255,255,255,.02)';
-    const borderL=isThrough?'#F59E0B':'#1a2540';
-    const rankColor=isThrough?'#F59E0B':'#475569';
+    const borderL=isThrough?'#F59E0B':'#334155';
+    const rankColor=isThrough?'#F59E0B':'#64748b';
     const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
-    const gdColor=tm.gd>0?'#10B981':tm.gd<0?'#f87171':'#3a5070';
-    const ptsColor=isThrough?'#fbbf24':'#94a3b8';
+    const gdColor=tm.gd>0?'#34d399':tm.gd<0?'#f87171':'#94a3b8';
+    const ptsColor=isThrough?'#fbbf24':'#64748b';
     const isLast=i===thirdPlaces.length-1;
-    // divider line between 8th and 9th
-    const borderTop=i===8?'border-top:2px dashed rgba(245,158,11,.4);':'';
+    const borderTop=i===8?'border-top:2px dashed rgba(245,158,11,.5);':'';
     const t=GT[tm.group];
 
     // form dots
     const formArr=(tm.form||[]).slice(-5).reverse();
     while(formArr.length<5) formArr.push('-');
-    const fdc={'W':'#10B981','D':'#94a3b8','L':'#ef4444','-':'#1e293b'};
-    const formHtmlT='<div style="display:flex;align-items:center;justify-content:center;gap:2px">'
-      +formArr.map(function(r){return '<span style="width:7px;height:7px;border-radius:50%;background:'+fdc[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
+    const fdc={'W':'#00FF00','D':'#94a3b8','L':'#FF0000','-':'#1e3a5f'};
+    const formHtmlT='<div style="display:flex;align-items:center;justify-content:center;gap:3px">'
+      +formArr.map(function(r){return '<span style="width:8px;height:8px;border-radius:50%;background:'+fdc[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
       +'</div>';
 
-    h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 13px;'
-      +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.06)')+';'
-      +'border-left:4px solid '+borderL+';background:'+rowBg+';'+borderTop+'">'
-      // left: rank + flag + name
-      +'<div style="display:flex;align-items:center;gap:7px;min-width:0">'
-      +'<span style="font-size:13px;font-weight:900;color:'+rankColor+';width:18px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
-      +(isThrough?'<span style="font-size:9px;background:#F59E0B;color:#000;border-radius:3px;padding:1px 4px;font-weight:800;flex-shrink:0">晉級</span>':'<span style="font-size:9px;background:rgba(255,255,255,.08);color:#475569;border-radius:3px;padding:1px 4px;font-weight:700;flex-shrink:0">出局</span>')
-      +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:20px;height:14px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.2);flex-shrink:0" onerror="this.style.display=&quot;none&quot;">'
-      +'<span style="font-size:13px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
+    h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:7px 20px;'
+      +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.07)')+';'
+      +'border-left:5px solid '+borderL+';background:'+rowBg+';'+borderTop+'">'
+      +'<div style="display:flex;align-items:center;gap:10px;min-width:0">'
+      +'<span style="font-size:15px;font-weight:900;color:'+rankColor+';width:24px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
+      +(isThrough
+        ?'<span style="font-size:10px;background:#F59E0B;color:#000;border-radius:4px;padding:2px 6px;font-weight:900;flex-shrink:0;letter-spacing:.03em">晉級</span>'
+        :'<span style="font-size:10px;background:rgba(255,255,255,.08);color:#64748b;border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">出局</span>')
+      +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:26px;height:18px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.25);flex-shrink:0" onerror="this.style.display=&quot;none&quot;">'
+      +'<span style="font-size:14px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
       +'</div>'
-      // right: stats
-      +'<div style="display:grid;grid-template-columns:24px 24px repeat(7,22px) 30px 54px;text-align:center;align-items:center">'
-      +'<span style="font-size:11px;font-weight:800;color:'+t.bdr+';background:'+t.bdr+'22;border-radius:3px;padding:1px 0">'+tm.group+'</span>'
-      +'<span style="font-size:11px;font-weight:700;color:#475569">3</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.mp+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.w+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.d+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.l+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.gf+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:#3a5070">'+tm.ga+'</span>'
-      +'<span style="font-size:11px;font-weight:700;color:'+gdColor+'">'+gdStr+'</span>'
-      +'<span style="font-size:12px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.13);border-radius:4px;padding:1px 0">'+tm.pts+'</span>'
+      +'<div style="display:grid;grid-template-columns:36px repeat(7,34px) 44px 70px;text-align:center;align-items:center">'
+      +'<span style="font-size:13px;font-weight:800;color:'+t.bdr+';background:'+t.bdr+'22;border-radius:4px;padding:2px 0">'+tm.group+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.mp+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.w+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.d+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.l+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.gf+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:#cbd5e1">'+tm.ga+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:'+gdColor+'">'+gdStr+'</span>'
+      +'<span style="font-size:14px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.15);border-radius:5px;padding:2px 0">'+tm.pts+'</span>'
       +formHtmlT
       +'</div></div>';
   });
@@ -1810,8 +1812,8 @@ function renderStandings(){
   h+='</div>'  // close table card
     // Legend
     +'<div style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:#64748b;font-weight:600">'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>晉級 R32（第1-8名）</span>'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>出局（第9-12名）</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>晉級 R32（前8名）</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>出局（第9-24名）</span>'
     +'<span style="font-size:10px;color:#475569">※ 依 Pts→GD→GF→紀律分→FIFA排名 排序</span>'
     +'</div>'
     +'</div>';  // close margin-top div
@@ -2321,7 +2323,7 @@ function applyStandingsData(data){
   });
   // 清除 renderStandings cache，強制重新渲染
   const wrap = document.getElementById('standingsWrap');
-  if(wrap) wrap.dataset.lastGroup = '';
+  if(wrap) wrap.dataset.lastGroup = '__force_refresh__';
 }
 
 // ── 呼叫 Cloudflare Worker 抓最新積分 ─────────────────────────────────────────
