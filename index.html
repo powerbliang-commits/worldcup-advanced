@@ -1693,9 +1693,10 @@ function renderStandings(){
       +'</div></div>';
 
     teams.forEach(function(tm,i){
-      const rowBg='rgba(255,255,255,.02)';
-      const borderL='#334155';
-      const rkColor='#94a3b8';
+      const cl=tm.clinched; // 1or2=確定晉級, 4=確定出局
+      const rowBg=(cl===1||cl===2)?'rgba(16,185,129,.22)':cl===4?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
+      const borderL=(cl===1||cl===2)?'#10b981':cl===4?'#ef4444':'#334155';
+      const rkColor=(cl===1||cl===2)?'#10b981':cl===4?'#ef4444':'#94a3b8';
       const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
       const formArr=(tm.form||[]).slice(-5).reverse();
       while(formArr.length<5) formArr.push('-');
@@ -1743,12 +1744,15 @@ function renderStandings(){
     if(sorted[3]) thirdPlaces.push(Object.assign({},sorted[3],{groupRank:4}));
   });
 
-  // Step 2: rank 12 third-place teams by FIFA rules: Pts→GD→GF→fair_play→fifa_rank
-  // 有出賽資料的隊伍優先排在前面
+  // Step 2: rank teams
+  // 確定出局（clinched===4）直接放最後；有出賽的排前面；再依 Pts→GD→GF
   thirdPlaces.sort(function(a,b){
+    const aElim=a.clinched===4?1:0;
+    const bElim=b.clinched===4?1:0;
+    if(aElim!==bElim) return aElim-bElim; // 確定出局的排最後
     const aPlayed=a.mp>0?1:0;
     const bPlayed=b.mp>0?1:0;
-    if(bPlayed!==aPlayed) return bPlayed-aPlayed; // 有出賽的排前面
+    if(bPlayed!==aPlayed) return bPlayed-aPlayed;
     if(b.pts!==a.pts) return b.pts-a.pts;
     if(b.gd!==a.gd) return b.gd-a.gd;
     if(b.gf!==a.gf) return b.gf-a.gf;
@@ -1786,7 +1790,7 @@ function renderStandings(){
     +'</div></div>';
 
   thirdPlaces.forEach(function(tm,i){
-    const isThrough=i<8;
+    const isThrough=i<8&&tm.clinched!==4;
     const rowBg=isThrough?'rgba(245,158,11,.07)':'rgba(255,255,255,.02)';
     const borderL=isThrough?'#F59E0B':'#334155';
     const rankColor=isThrough?'#F59E0B':'#64748b';
@@ -2337,6 +2341,7 @@ function applyStandingsData(data){
         existing.gf = t.gf||0;
         existing.ga = t.ga||0;
         existing.form = t.form||[];
+        existing.clinched = t.clinched||null;
       }
     });
   });
