@@ -506,6 +506,10 @@ const WC_STORAGE_KEY = 'wc2026_standings';
 const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
 
+// ── 手動覆蓋清單（純數學無法判定時，告知 Claude 更新）───────────────────────
+const MANUAL_QUALIFIED  = ['美國'];   // 確定晉級（綠色）
+const MANUAL_ELIMINATED = ['土耳其','海地','突尼西亞']; // 確定出局（紅色）
+
 const GT={
   A:{bg:'#FFF1F2',bdr:'#F43F5E',bbg:'#F43F5E',btxt:'#fff'},
   B:{bg:'#EFF6FF',bdr:'#2563EB',bbg:'#2563EB',btxt:'#fff'},
@@ -1692,11 +1696,36 @@ function renderStandings(){
       +'<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.5)">Form</span>'
       +'</div></div>';
 
+    // ── 數學判斷確定晉級/出局 ──────────────────────────────────────────────────
+    // 每隊還剩幾場：3 - mp
+    // 確定晉級：自己最少得分（現有pts）> 第3名最多可能得分（pts + 剩餘場次×3）
+    // 確定出局：自己最多得分（pts + 剩餘×3）< 第2名最少得分（現有pts）
+    const sorted_pts = teams.map(function(t){
+      return {pts: t.w*3+t.d, mp: t.mp};
+    }).sort(function(a,b){ return b.pts-a.pts; });
+    const p1=sorted_pts[0]?sorted_pts[0].pts:0;
+    const p2=sorted_pts[1]?sorted_pts[1].pts:0;
+    const p3=sorted_pts[2]?sorted_pts[2].pts:0;
+    const p4=sorted_pts[3]?sorted_pts[3].pts:0;
+    const r1=3-(sorted_pts[0]?sorted_pts[0].mp:0);
+    const r2=3-(sorted_pts[1]?sorted_pts[1].mp:0);
+    const r3=3-(sorted_pts[2]?sorted_pts[2].mp:0);
+    const r4=3-(sorted_pts[3]?sorted_pts[3].mp:0);
+
     teams.forEach(function(tm,i){
-      const cl=tm.clinched; // 1or2=確定晉級, 4=確定出局
-      const rowBg=(cl===1||cl===2)?'rgba(16,185,129,.22)':cl===4?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
-      const borderL=(cl===1||cl===2)?'#10b981':cl===4?'#ef4444':'#334155';
-      const rkColor=(cl===1||cl===2)?'#10b981':cl===4?'#ef4444':'#94a3b8';
+      const pts=tm.w*3+tm.d;
+      const rem=3-tm.mp;
+      const myMax=pts+rem*3;
+      const myMin=pts;
+
+      // 確定晉級：純數學（我現有積分 > 第3名即使全贏的最高積分）
+      // 純數學 + 手動覆蓋
+      const qualified = (i<=1 && myMin > p3+r3*3) || MANUAL_QUALIFIED.includes(tm.zh);
+      const eliminated = !qualified && (myMax < p2 || MANUAL_ELIMINATED.includes(tm.zh));
+
+      const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
+      const borderL=qualified?'#10b981':eliminated?'#ef4444':'#334155';
+      const rkColor=qualified?'#10b981':eliminated?'#ef4444':'#94a3b8';
       const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
       const formArr=(tm.form||[]).slice(-5).reverse();
       while(formArr.length<5) formArr.push('-');
@@ -1745,10 +1774,10 @@ function renderStandings(){
   });
 
   // Step 2: rank teams
-  // 確定出局（clinched===4）直接放最後；有出賽的排前面；再依 Pts→GD→GF
+  // 手動確定出局的放最後；有出賽的排前面；再依 Pts→GD→GF
   thirdPlaces.sort(function(a,b){
-    const aElim=a.clinched===4?1:0;
-    const bElim=b.clinched===4?1:0;
+    const aElim=MANUAL_ELIMINATED.includes(a.zh)?1:0;
+    const bElim=MANUAL_ELIMINATED.includes(b.zh)?1:0;
     if(aElim!==bElim) return aElim-bElim; // 確定出局的排最後
     const aPlayed=a.mp>0?1:0;
     const bPlayed=b.mp>0?1:0;
@@ -1790,10 +1819,12 @@ function renderStandings(){
     +'</div></div>';
 
   thirdPlaces.forEach(function(tm,i){
-    const isThrough=i<8&&tm.clinched!==4;
-    const rowBg=isThrough?'rgba(245,158,11,.07)':'rgba(255,255,255,.02)';
-    const borderL=isThrough?'#F59E0B':'#334155';
-    const rankColor=isThrough?'#F59E0B':'#64748b';
+    const isConfirmedElim=MANUAL_ELIMINATED.includes(tm.zh);
+    const isThrough=i<8&&!isConfirmedElim;
+    const isPending=!isThrough&&!isConfirmedElim; // 9名外但還未確定出局
+    const rowBg=isThrough?'rgba(245,158,11,.07)':isConfirmedElim?'rgba(239,68,68,.08)':'rgba(255,255,255,.02)';
+    const borderL=isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#334155';
+    const rankColor=isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#64748b';
     const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
     const gdColor=tm.gd>0?'#34d399':tm.gd<0?'#f87171':'#94a3b8';
     const ptsColor=isThrough?'#fbbf24':'#64748b';
@@ -1816,7 +1847,9 @@ function renderStandings(){
       +'<span style="font-size:15px;font-weight:900;color:'+rankColor+';width:24px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
       +(isThrough
         ?'<span style="font-size:10px;background:#F59E0B;color:#000;border-radius:4px;padding:2px 6px;font-weight:900;flex-shrink:0;letter-spacing:.03em">晉級</span>'
-        :'<span style="font-size:10px;background:rgba(255,255,255,.08);color:#64748b;border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">出局</span>')
+        :isConfirmedElim
+          ?'<span style="font-size:10px;background:#ef4444;color:#fff;border-radius:4px;padding:2px 6px;font-weight:800;flex-shrink:0">出局</span>'
+          :'<span style="font-size:10px;background:rgba(99,130,255,.15);color:#94a3b8;border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">待定</span>')
       +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:26px;height:18px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.25);flex-shrink:0" onerror="this.style.display=&quot;none&quot;">'
       +'<span style="font-size:14px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
       +'</div>'
