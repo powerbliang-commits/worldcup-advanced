@@ -174,7 +174,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .ko-panel::-webkit-scrollbar{height:5px}
 .ko-panel::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
 /* Bracket column */
-.bkt-col{display:flex;flex-direction:column;flex-shrink:0;width:136px}
+.bkt-col{display:flex;flex-direction:column;flex-shrink:0;width:152px}
 .bkt-col-label{font-size:9.5px;font-weight:800;color:#fff;text-transform:uppercase;
   letter-spacing:.07em;margin-bottom:8px;padding:3px 7px;border-radius:4px;
   background:#1e40af;text-align:center}
@@ -183,30 +183,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .bkt-col-label.sf{background:#b45309}
 .bkt-col-label.final{background:#d97706}
 /* Card */
-.bkt-card{background:#fff;border-radius:8px;border:1.5px solid #CBD5E1;
-  width:136px;cursor:pointer;flex-shrink:0;
+.bkt-card{background:#fff;border-radius:9px;border:1.5px solid #CBD5E1;
+  width:152px;cursor:pointer;flex-shrink:0;
   transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .bkt-card:hover{border-color:#1e40af;box-shadow:0 2px 10px rgba(30,64,175,.15)}
 .bkt-card.final-card{border-color:#F59E0B;border-width:2px;background:#FFFBEB}
 .bkt-card.third-card{border-color:#10B981;border-width:2px;background:#F0FDF4}
 .bkt-card-hdr{display:flex;justify-content:space-between;align-items:center;
-  padding:4px 8px 3px;background:#EFF6FF;border-radius:6px 6px 0 0;
+  padding:5px 9px 4px;background:#EFF6FF;border-radius:7px 7px 0 0;
   border-bottom:1px solid #BFDBFE}
 .bkt-card.final-card .bkt-card-hdr{background:#FEF3C7;border-bottom-color:#FDE68A}
 .bkt-card.third-card .bkt-card-hdr{background:#D1FAE5;border-bottom-color:#6EE7B7}
-.bkt-mid{font-size:8px;color:#1e40af;font-weight:800;letter-spacing:.03em}
+.bkt-mid{font-size:9px;color:#1e40af;font-weight:800;letter-spacing:.03em}
 .bkt-card.final-card .bkt-mid{color:#92400E}
 .bkt-card.third-card .bkt-mid{color:#065F46}
-.bkt-time{font-size:8.5px;font-weight:800;color:#1e3a8a;white-space:nowrap}
-.bkt-team{display:flex;align-items:center;gap:5px;padding:4px 8px}
+.bkt-time{font-size:9.5px;font-weight:800;color:#1e3a8a;white-space:nowrap}
+.bkt-team{display:flex;align-items:center;gap:6px;padding:5px 9px}
 .bkt-team+.bkt-team{border-top:1px solid #F1F5F9}
-.bkt-flag{width:18px;height:12px;object-fit:cover;border-radius:2px;
+.bkt-flag{width:20px;height:14px;object-fit:cover;border-radius:2px;
   border:1px solid rgba(0,0,0,.1);flex-shrink:0}
-.bkt-name{font-size:11.5px;font-weight:700;color:#1e293b;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:88px}
-.bkt-tbd{font-size:10px;color:#64748b;font-style:italic;font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:95px}
-.bkt-venue{padding:2px 8px 5px;font-size:8px;color:#64748b;font-weight:500;
+.bkt-name{font-size:12.5px;font-weight:700;color:#1e293b;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:98px}
+.bkt-tbd{font-size:11px;color:#64748b;font-style:italic;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:105px}
+.bkt-venue{padding:3px 9px 6px;font-size:9px;color:#64748b;font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Connector column */
 .bkt-conn{flex-shrink:0;position:relative;align-self:stretch;width:32px}
@@ -268,8 +268,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
   .card-main { grid-template-columns: 30px 120px auto !important; }
   .card-main > div:nth-child(3) { display: none !important; }
-  .bkt-card { width: 118px !important; }
-  .bkt-col  { width: 118px !important; }
+  .bkt-card { width: 132px !important; }
+  .bkt-col  { width: 132px !important; }
 }
 
 /* Tablet */
@@ -505,12 +505,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 const WC_STORAGE_KEY = 'wc2026_standings';
 const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
+const ZH_TO_EN      = {}; // 中文名 → 英文名（從 MATCH_SCORES key 反推）
+
+// ── 英文名 → 中文名對照（與 Worker EN_MAP 一致）──────────────────────────────
+const EN_TO_ZH = {
+  'Mexico':'墨西哥','South Korea':'南韓','South Africa':'南非','Czechia':'捷克',
+  'Canada':'加拿大','Switzerland':'瑞士','Bosnia & Herzegovina':'波斯尼亞','Qatar':'卡達',
+  'Brazil':'巴西','Scotland':'蘇格蘭','Morocco':'摩洛哥','Haiti':'海地',
+  'USA':'美國','Turkey':'土耳其','Paraguay':'巴拉圭','Australia':'澳洲',
+  'Germany':'德國','Ivory Coast':'象牙海岸','Curaçao':'庫拉索','Ecuador':'厄瓜多',
+  'Netherlands':'荷蘭','Japan':'日本','Sweden':'瑞典','Tunisia':'突尼西亞',
+  'Belgium':'比利時','Iran':'伊朗','Egypt':'埃及','New Zealand':'紐西蘭',
+  'Spain':'西班牙','Uruguay':'烏拉圭','Cape Verde':'維德角','Saudi Arabia':'沙烏地阿拉伯',
+  'France':'法國','Norway':'挪威','Senegal':'塞內加爾','Iraq':'伊拉克',
+  'Argentina':'阿根廷','Austria':'奧地利','Algeria':'阿爾及利亞','Jordan':'約旦',
+  'Portugal':'葡萄牙','Colombia':'哥倫比亞','DR Congo':'剛果民主共和國',
+  'Uzbekistan':'烏茲別克','England':'英格蘭','Croatia':'克羅埃西亞','Panama':'巴拿馬','Ghana':'迦納',
+};
 
 // ── 手動覆蓋清單（純數學無法判定時，告知 Claude 更新）───────────────────────
-// Group D：美國已2連勝，H2H優勢確定第1晉級；土耳其積分差距+H2H確定淘汰
-//           澳洲、巴拉圭待定（最後一輪互踢決定）
-// Group J：阿根廷已2連勝，H2H優勢確定晉級（6分 vs 第3名最多6分但GD差距大）
-const MANUAL_QUALIFIED  = ['美國','阿根廷'];              // 確定晉級（綠色）
+// MANUAL_QUALIFIED：H2H尚未完整（有未打的場次）時手動補強
+// 美國：H2H已打完，自動判定
+// 阿根廷：尚未打約旦，H2H不完整，暫時手動；最後一輪後自動接管
+const MANUAL_QUALIFIED  = ['阿根廷'];                   // 確定晉級（綠色）
 const MANUAL_ELIMINATED = ['土耳其','海地','突尼西亞']; // 確定出局（紅色）
 
 const GT={
@@ -1700,11 +1717,8 @@ function renderStandings(){
       +'</div></div>';
 
     // ── 數學判斷確定晉級/出局 ──────────────────────────────────────────────────
-    // 每隊還剩幾場：3 - mp
-    // 確定晉級：自己最少得分（現有pts）> 第3名最多可能得分（pts + 剩餘場次×3）
-    // 確定出局：自己最多得分（pts + 剩餘×3）< 第2名最少得分（現有pts）
     const sorted_pts = teams.map(function(t){
-      return {pts: t.w*3+t.d, mp: t.mp};
+      return {pts: t.w*3+t.d, mp: t.mp, zh: t.zh, en: t.zh};
     }).sort(function(a,b){ return b.pts-a.pts; });
     const p1=sorted_pts[0]?sorted_pts[0].pts:0;
     const p2=sorted_pts[1]?sorted_pts[1].pts:0;
@@ -1715,15 +1729,58 @@ function renderStandings(){
     const r3=3-(sorted_pts[2]?sorted_pts[2].mp:0);
     const r4=3-(sorted_pts[3]?sorted_pts[3].mp:0);
 
+    // ── H2H 判斷：同分時比頭對頭積分 ───────────────────────────────────────────
+    // 從 MATCH_SCORES 找兩隊之間的對戰結果，計算 H2H 積分
+    function getH2HPts(zhA, zhB){
+      // 直接用 EN_TO_ZH 掃描 MATCH_SCORES
+      let score = null;
+      let flipped = false;
+      Object.keys(MATCH_SCORES).forEach(function(key){
+        const parts = key.split('|');
+        if(parts.length!==2) return;
+        const zh1 = EN_TO_ZH[parts[0]];
+        const zh2 = EN_TO_ZH[parts[1]];
+        if(!zh1||!zh2) return;
+        if(zh1===zhA&&zh2===zhB){ score=MATCH_SCORES[key]; flipped=false; }
+        if(zh1===zhB&&zh2===zhA){ score=MATCH_SCORES[key]; flipped=true; }
+      });
+      if(!score) return {a:null,b:null}; // 還沒打
+      const sA = flipped?score.s2:score.s1;
+      const sB = flipped?score.s1:score.s2;
+      const ptsA = sA>sB?3:sA===sB?1:0;
+      const ptsB = sB>sA?3:sA===sB?1:0;
+      return {a:ptsA, b:ptsB, sA:sA, sB:sB};
+    }
+
+    // 判斷某隊是否因 H2H 確定在前2名
+    // 邏輯：我積分領先 OR 同分但我已打過所有可追平對手且 H2H 都贏
+    function qualifiedByH2H(tm, myPts){
+      // 找出可能追平我的對手（最多積分 >= myPts）
+      const rivals = teams.filter(function(t){
+        if(t.zh===tm.zh) return false;
+        const tPts = t.w*3+t.d;
+        const tMax = tPts+(3-t.mp)*3;
+        return tMax >= myPts; // 這隊有可能追平
+      });
+      if(rivals.length===0) return true; // 沒有對手能追平，確定晉級
+      // 檢查對每個可能追平的對手，H2H 是否都已打過且我都贏
+      return rivals.every(function(rival){
+        const h2h = getH2HPts(tm.zh, rival.zh);
+        if(h2h.a===null) return false; // 還沒打，無法確定
+        return h2h.a > h2h.b; // H2H 我贏
+      });
+    }
+
     teams.forEach(function(tm,i){
       const pts=tm.w*3+tm.d;
       const rem=3-tm.mp;
       const myMax=pts+rem*3;
       const myMin=pts;
 
-      // 確定晉級：純數學（我現有積分 > 第3名即使全贏的最高積分）
-      // 純數學 + 手動覆蓋
-      const qualified = (i<=1 && myMin > p3+r3*3) || MANUAL_QUALIFIED.includes(tm.zh);
+      // 確定晉級：純積分 OR H2H補強 OR 手動覆蓋
+      const mathQualified = i<=1 && myMin > p3+r3*3;
+      const h2hQualified  = i<=1 && !mathQualified && qualifiedByH2H(tm, pts);
+      const qualified = mathQualified || h2hQualified || MANUAL_QUALIFIED.includes(tm.zh);
       const eliminated = !qualified && (myMax < p2 || MANUAL_ELIMINATED.includes(tm.zh));
 
       const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
@@ -1940,16 +1997,16 @@ const KO_ROUNDS=[
   //           (M83,M84)→M93, (M81,M82)→M94, (M86,M88)→M95, (M85,M87)→M96
   {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
     {id:'M73',date:'6/29 週一',time:'03:00',home:tbd('A2'),away:tbd('B2'),venue:'SoFi Stadium'},
-    {id:'M75',date:'6/29 週一',time:'09:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
+    {id:'M75',date:'6/30 週二',time:'09:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
     {id:'M74',date:'6/30 週二',time:'04:30',home:{name:'德國',code:'de',tbd:false},away:tbd('最佳第3（ABCDF）'),venue:'Gillette Stadium'},
     {id:'M77',date:'7/01 週三',time:'05:00',home:tbd('I1'),away:tbd('最佳第3（CDFGH）'),venue:'MetLife Stadium'},
     {id:'M76',date:'6/30 週二',time:'01:00',home:tbd('C1'),away:tbd('F2'),venue:'NRG Stadium'},
     {id:'M78',date:'7/01 週三',time:'01:00',home:tbd('E2'),away:tbd('I2'),venue:'AT&T Stadium'},
-    {id:'M79',date:'6/30 週二',time:'09:00',home:tbd('A1'),away:tbd('最佳第3（CEFHI）'),venue:'Estadio Azteca'},
+    {id:'M79',date:'7/01 週三',time:'09:00',home:tbd('A1'),away:tbd('最佳第3（CEFHI）'),venue:'Estadio Azteca'},
     {id:'M80',date:'7/02 週四',time:'00:00',home:tbd('L1'),away:tbd('最佳第3（EHIJK）'),venue:'Mercedes-Benz Stadium'},
     {id:'M83',date:'7/03 週五',time:'07:00',home:tbd('K2'),away:tbd('L2'),venue:'BMO Field'},
     {id:'M84',date:'7/03 週五',time:'03:00',home:tbd('H1'),away:tbd('J2'),venue:'SoFi Stadium'},
-    {id:'M81',date:'7/01 週三',time:'08:00',home:{name:'美國',code:'us',tbd:false},away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
+    {id:'M81',date:'7/02 週四',time:'08:00',home:{name:'美國',code:'us',tbd:false},away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
     {id:'M82',date:'7/02 週四',time:'04:00',home:tbd('G1'),away:tbd('最佳第3（AEHIJ）'),venue:'Lumen Field'},
     {id:'M86',date:'7/04 週六',time:'06:00',home:tbd('J1'),away:tbd('H2'),venue:'Hard Rock Stadium'},
     {id:'M88',date:'7/04 週六',time:'02:00',home:tbd('D2'),away:tbd('G2'),venue:'AT&T Stadium'},
@@ -2172,7 +2229,7 @@ function makeBktCard(m){
 // The connector SVG column sits between two card columns and is 32px wide.
 // Its height = left col height.
 
-const CARD_H=82, GAP=16, LABEL_H=26, CONN_W=32;
+const CARD_H=90, GAP=20, LABEL_H=26, CONN_W=32;
 
 function colHeight(n){ return LABEL_H + n*(CARD_H+GAP); }
 // Y-centre of card k in a column (absolute within the column)
@@ -2385,9 +2442,10 @@ function applyStandingsData(data){
   const wrap = document.getElementById('standingsWrap');
   if(wrap) wrap.dataset.lastGroup = '__force_refresh__';
 
-  // 儲存比賽比數
+  // 儲存比賽比數，同時建立 code→zh 及 enKey→zh 對照
   if(data.results){
     Object.assign(MATCH_SCORES, data.results);
+    // EN_TO_ZH 對照表已在全域宣告，不需要動態建立
     render(); // 重新渲染賽事卡以顯示比數
   }
 }
