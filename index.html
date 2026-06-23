@@ -509,7 +509,8 @@ const MATCH_SCORES   = {};
 // ── 手動覆蓋清單（純數學無法判定時，告知 Claude 更新）───────────────────────
 // Group D：美國已2連勝，H2H優勢確定第1晉級；土耳其積分差距+H2H確定淘汰
 //           澳洲、巴拉圭待定（最後一輪互踢決定）
-const MANUAL_QUALIFIED  = ['美國'];              // 確定晉級（綠色）
+// Group J：阿根廷已2連勝，H2H優勢確定晉級（6分 vs 第3名最多6分但GD差距大）
+const MANUAL_QUALIFIED  = ['美國','阿根廷'];              // 確定晉級（綠色）
 const MANUAL_ELIMINATED = ['土耳其','海地','突尼西亞']; // 確定出局（紅色）
 
 const GT={
@@ -1958,31 +1959,31 @@ const KO_ROUNDS=[
   // R16: display order matches R32 bracket pairs (M90,M89,M91,M92,M93,M94,M95,M96)
   // QF pairs: (M90,M89)→M97, (M91,M92)→M99, (M93,M94)→M98, (M95,M96)→M100
   {label:'16強 Round of 16',shortLabel:'Round of 16',cols:2,matches:[
-    {id:'M90',date:'7/06 週日',time:'01:00',home:tbd('W73'),away:tbd('W75'),venue:'NRG Stadium'},
-    {id:'M89',date:'7/06 週日',time:'05:00',home:tbd('W74'),away:tbd('W77'),venue:'Lincoln Financial Field'},
-    {id:'M91',date:'7/07 週一',time:'04:00',home:tbd('W76'),away:tbd('W78'),venue:'MetLife Stadium'},
-    {id:'M92',date:'7/07 週一',time:'09:00',home:tbd('W79'),away:tbd('W80'),venue:'Estadio Azteca'},
-    {id:'M93',date:'7/08 週二',time:'03:00',home:tbd('W83'),away:tbd('W84'),venue:'AT&T Stadium'},
-    {id:'M94',date:'7/08 週二',time:'08:00',home:tbd('W81'),away:tbd('W82'),venue:'Lumen Field'},
-    {id:'M95',date:'7/09 週三',time:'00:00',home:tbd('W86'),away:tbd('W88'),venue:'Mercedes-Benz Stadium'},
-    {id:'M96',date:'7/09 週三',time:'04:00',home:tbd('W85'),away:tbd('W87'),venue:'BC Place'},
+    {id:'M90',date:'7/05 週日',time:'01:00',home:tbd('W73'),away:tbd('W75'),venue:'NRG Stadium'},
+    {id:'M89',date:'7/05 週日',time:'05:00',home:tbd('W74'),away:tbd('W77'),venue:'Lincoln Financial Field'},
+    {id:'M91',date:'7/06 週一',time:'04:00',home:tbd('W76'),away:tbd('W78'),venue:'MetLife Stadium'},
+    {id:'M92',date:'7/06 週一',time:'08:00',home:tbd('W79'),away:tbd('W80'),venue:'Estadio Azteca'},
+    {id:'M93',date:'7/07 週二',time:'03:00',home:tbd('W83'),away:tbd('W84'),venue:'AT&T Stadium'},
+    {id:'M94',date:'7/07 週二',time:'08:00',home:tbd('W81'),away:tbd('W82'),venue:'Lumen Field'},
+    {id:'M95',date:'7/08 週三',time:'00:00',home:tbd('W86'),away:tbd('W88'),venue:'Mercedes-Benz Stadium'},
+    {id:'M96',date:'7/08 週三',time:'04:00',home:tbd('W85'),away:tbd('W87'),venue:'BC Place'},
   ]},
   // QF: display order (M97,M99,M98,M100) so SF pairs are adjacent
   // SF pairs: (M97,M98)→M101, (M99,M100)→M102
   {label:'準決賽 Quarter-finals',shortLabel:'Quarter-final',cols:2,matches:[
-    {id:'M97',date:'7/10 週四',time:'03:00',home:tbd('W89'),away:tbd('W90'),venue:'Gillette Stadium'},
-    {id:'M98',date:'7/11 週五',time:'03:00',home:tbd('W93'),away:tbd('W94'),venue:'SoFi Stadium'},
-    {id:'M99',date:'7/12 週六',time:'04:00',home:tbd('W91'),away:tbd('W92'),venue:'Hard Rock Stadium'},
-    {id:'M100',date:'7/13 週日',time:'09:00',home:tbd('W95'),away:tbd('W96'),venue:'Arrowhead Stadium'},
+    {id:'M97',date:'7/10 週五',time:'04:00',home:tbd('W89'),away:tbd('W90'),venue:'Gillette Stadium'},
+    {id:'M98',date:'7/11 週六',time:'03:00',home:tbd('W93'),away:tbd('W94'),venue:'SoFi Stadium'},
+    {id:'M99',date:'7/12 週日',time:'05:00',home:tbd('W91'),away:tbd('W92'),venue:'Hard Rock Stadium'},
+    {id:'M100',date:'7/12 週日',time:'09:00',home:tbd('W95'),away:tbd('W96'),venue:'Arrowhead Stadium'},
   ]},
   // SF
   {label:'四強 Semi-finals',shortLabel:'Semi-final',cols:2,matches:[
-    {id:'M101',date:'7/15 週二',time:'03:00',home:tbd('W97'),away:tbd('W98'),venue:'AT&T Stadium'},
-    {id:'M102',date:'7/16 週三',time:'03:00',home:tbd('W99'),away:tbd('W100'),venue:'Mercedes-Benz Stadium'},
+    {id:'M101',date:'7/15 週三',time:'03:00',home:tbd('W97'),away:tbd('W98'),venue:'AT&T Stadium'},
+    {id:'M102',date:'7/16 週四',time:'03:00',home:tbd('W99'),away:tbd('W100'),venue:'Mercedes-Benz Stadium'},
   ]},
   // Third-place
   {label:'季軍賽',shortLabel:'Third-place',cols:1,matches:[
-    {id:'M103',date:'7/19 週六',time:'05:00',home:tbd('M101落敗者'),away:tbd('M102落敗者'),venue:'Hard Rock Stadium',isThird:true},
+    {id:'M103',date:'7/19 週日',time:'05:00',home:tbd('M101落敗者'),away:tbd('M102落敗者'),venue:'Hard Rock Stadium',isThird:true},
   ]},
   // Final
   {label:'決賽 Final 🏆',shortLabel:'Final 🏆',cols:1,matches:[
