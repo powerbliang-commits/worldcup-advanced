@@ -505,6 +505,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 const WC_STORAGE_KEY = 'wc2026_standings';
 const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
+const CONFIRMED_ELIMINATED = new Set(); // 由積分榜邏輯動態填入
 const ZH_TO_EN      = {}; // 中文名 → 英文名（從 MATCH_SCORES key 反推）
 
 // ── 英文名 → 中文名對照（與 Worker EN_MAP 一致）──────────────────────────────
@@ -524,11 +525,11 @@ const EN_TO_ZH = {
 };
 
 // ── 手動覆蓋清單（純數學無法判定時，告知 Claude 更新）───────────────────────
-// MANUAL_QUALIFIED：H2H尚未完整（有未打的場次）時手動補強
-// 美國：H2H已打完，自動判定
-// 阿根廷：尚未打約旦，H2H不完整，暫時手動；最後一輪後自動接管
-const MANUAL_QUALIFIED  = ['阿根廷'];                   // 確定晉級（綠色）
-const MANUAL_ELIMINATED = ['土耳其','海地','突尼西亞']; // 確定出局（紅色）
+// MANUAL_QUALIFIED：純數學及H2H均無法判定時才手動加入
+// 美國：H2H已打完但自己還剩1場，mathQ1算不出來，手動填入M81
+// 阿根廷：還沒打約旦，手動確定晉級
+const MANUAL_QUALIFIED  = [];                           // 確定晉級（綠色）
+const MANUAL_ELIMINATED = [];                           // 確定出局（紅色）
 
 const GT={
   A:{bg:'#FFF1F2',bdr:'#F43F5E',bbg:'#F43F5E',btxt:'#fff'},
@@ -1661,10 +1662,122 @@ const STANDINGS = {
 
 let stdActiveGroup='ALL';
 
+// H2H 積分查詢（全域函數）
+function getH2HPts(zhA, zhB){
+  let score = null;
+  let flipped = false;
+  Object.keys(MATCH_SCORES).forEach(function(key){
+    const parts = key.split('|');
+    if(parts.length!==2) return;
+    const zh1 = EN_TO_ZH[parts[0]];
+    const zh2 = EN_TO_ZH[parts[1]];
+    if(!zh1||!zh2) return;
+    if(zh1===zhA&&zh2===zhB){ score=MATCH_SCORES[key]; flipped=false; }
+    if(zh1===zhB&&zh2===zhA){ score=MATCH_SCORES[key]; flipped=true; }
+  });
+  if(!score) return {a:null,b:null};
+  const sA = flipped?score.s2:score.s1;
+  const sB = flipped?score.s1:score.s2;
+  const ptsA = sA>sB?3:sA===sB?1:0;
+  const ptsB = sB>sA?3:sA===sB?1:0;
+  return {a:ptsA, b:ptsB, sA:sA, sB:sB};
+}
+
+// 預先計算所有組的確定出局隊伍，填入 CONFIRMED_ELIMINATED
+function buildConfirmedEliminated(){
+  CONFIRMED_ELIMINATED.clear();
+  const allGroups='ABCDEFGHIJKL'.split('');
+  allGroups.forEach(function(g){
+    const teams=STANDINGS[g];
+    if(!teams||!teams.length) return;
+    const sorted_pts=teams.map(function(t){
+      return {pts:t.w*3+t.d, mp:t.mp};
+    }).sort(function(a,b){return b.pts-a.pts;});
+    const p2=sorted_pts[1]?sorted_pts[1].pts:0;
+    const p3=sorted_pts[2]?sorted_pts[2].pts:0;
+    const r3=3-(sorted_pts[2]?sorted_pts[2].mp:0);
+
+    // 按積分排序取得排名順序
+    const rankedTeams = teams.slice().sort(function(a,b){
+      const pa=a.w*3+a.d, pb=b.w*3+b.d;
+      return pb-pa||(pb-pa)||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;
+    });
+
+    teams.forEach(function(tm){
+      const pts=tm.w*3+tm.d;
+      const rem=3-tm.mp;
+      const myMax=pts+rem*3;
+      const rankIdx=rankedTeams.findIndex(function(t){return t.zh===tm.zh;});
+
+      // 純數學確定第4名
+      const mathElim = myMax < p3;
+
+      // H2H確定第4名
+      let h2hElim = false;
+      if(!mathElim){
+        const others=teams.filter(function(t){return t.zh!==tm.zh;});
+        const h2hBeaten=others.filter(function(rival){
+          const tPts=rival.w*3+rival.d;
+          const tMax=tPts+(3-rival.mp)*3;
+          if(tMax<myMax) return false;
+          const h2h=getH2HPts(tm.zh,rival.zh);
+          if(h2h.a===null) return false;
+          return h2h.b>h2h.a;
+        });
+        const aheadOf=others.filter(function(t){
+          const tPts=t.w*3+t.d;
+          const definite=tPts>=myMax;
+          const h2hLost=h2hBeaten.some(function(b){return b.zh===t.zh;});
+          return definite||h2hLost;
+        });
+        h2hElim=aheadOf.length>=3;
+      }
+
+      if(mathElim||h2hElim||MANUAL_ELIMINATED.includes(tm.zh)){
+        CONFIRMED_ELIMINATED.add(tm.zh);
+      }
+
+      // 確定第1名：即使我剩下全輸，第2名全贏也追不上我 OR H2H確定，且目前排第1
+      const r2mp=sorted_pts[1]?sorted_pts[1].mp:0;
+      const r3mp=sorted_pts[2]?sorted_pts[2].mp:0;
+      const myMin1 = pts; // 我的最少積分（剩下全輸）
+      const mathQ1 = rankIdx===0 && myMin1 > p2+(3-r2mp)*3;
+      const h2hQ1  = rankIdx===0 && !mathQ1 && (function(){
+        // 找出「即使我剩下全輸（積分停在pts），還是能追平或超越我」的對手
+        const rivals=teams.filter(function(t){
+          if(t.zh===tm.zh) return false;
+          const tMax=(t.w*3+t.d)+(3-t.mp)*3;
+          return tMax >= pts; // 對方最多積分 >= 我現有積分
+        });
+        if(rivals.length===0) return false;
+        // 這些對手必須：H2H 已打完且我都贏
+        // （若平局也不行，因為積分相同時還要比其他條件）
+        return rivals.every(function(rival){
+          const h2h=getH2HPts(tm.zh,rival.zh);
+          if(h2h.a===null) return false; // 還沒打，無法確定
+          return h2h.a>h2h.b; // H2H 我贏
+        });
+      })();
+      // 只有數學或H2H確定第一名才填入Bracket，MANUAL_QUALIFIED只代表確定晉級不代表第一
+      if(mathQ1||h2hQ1){
+        updateBracketSlot(g+'1', tm.zh, tm.code);
+      }
+
+      // 確定第2名：整組打完且排第2
+      if(teams.every(function(t){return t.mp>=3;}) && rankIdx===1){
+        updateBracketSlot(g+'2', tm.zh, tm.code);
+      }
+    });
+  });
+}
+
 function renderStandings(){
   const wrap=document.getElementById('standingsWrap');
   if(wrap.dataset.lastGroup===stdActiveGroup) return;
   wrap.dataset.lastGroup=stdActiveGroup;
+  CONFIRMED_ELIMINATED.clear(); // 清空後重新計算所有組
+  buildConfirmedEliminated(); // 先把所有組的出局狀態算好，並更新 Bracket
+  const koPanel=document.getElementById('koPanel'); if(koPanel&&koPanel.style.display!=='none') renderKO();
 
   const SDC={
     A:['rgba(239,68,68,0.88)','rgba(220,38,38,0.88)'],
@@ -1731,57 +1844,82 @@ function renderStandings(){
 
     // ── H2H 判斷：同分時比頭對頭積分 ───────────────────────────────────────────
     // 從 MATCH_SCORES 找兩隊之間的對戰結果，計算 H2H 積分
-    function getH2HPts(zhA, zhB){
-      // 直接用 EN_TO_ZH 掃描 MATCH_SCORES
-      let score = null;
-      let flipped = false;
-      Object.keys(MATCH_SCORES).forEach(function(key){
-        const parts = key.split('|');
-        if(parts.length!==2) return;
-        const zh1 = EN_TO_ZH[parts[0]];
-        const zh2 = EN_TO_ZH[parts[1]];
-        if(!zh1||!zh2) return;
-        if(zh1===zhA&&zh2===zhB){ score=MATCH_SCORES[key]; flipped=false; }
-        if(zh1===zhB&&zh2===zhA){ score=MATCH_SCORES[key]; flipped=true; }
-      });
-      if(!score) return {a:null,b:null}; // 還沒打
-      const sA = flipped?score.s2:score.s1;
-      const sB = flipped?score.s1:score.s2;
-      const ptsA = sA>sB?3:sA===sB?1:0;
-      const ptsB = sB>sA?3:sA===sB?1:0;
-      return {a:ptsA, b:ptsB, sA:sA, sB:sB};
-    }
+    // getH2HPts 已移至全域
 
     // 判斷某隊是否因 H2H 確定在前2名
     // 邏輯：我積分領先 OR 同分但我已打過所有可追平對手且 H2H 都贏
+    // H2H 確定晉級：我跟所有可能追平的對手都已打完且都贏
     function qualifiedByH2H(tm, myPts){
-      // 找出可能追平我的對手（最多積分 >= myPts）
       const rivals = teams.filter(function(t){
         if(t.zh===tm.zh) return false;
-        const tPts = t.w*3+t.d;
-        const tMax = tPts+(3-t.mp)*3;
-        return tMax >= myPts; // 這隊有可能追平
+        const tMax = (t.w*3+t.d)+(3-t.mp)*3;
+        return tMax >= myPts;
       });
-      if(rivals.length===0) return true; // 沒有對手能追平，確定晉級
-      // 檢查對每個可能追平的對手，H2H 是否都已打過且我都贏
+      if(rivals.length===0) return true;
       return rivals.every(function(rival){
         const h2h = getH2HPts(tm.zh, rival.zh);
         if(h2h.a===null) return false; // 還沒打，無法確定
-        return h2h.a > h2h.b; // H2H 我贏
+        return h2h.a > h2h.b;
       });
     }
 
-    teams.forEach(function(tm,i){
+    // 確定第4名出局邏輯：
+    // 另外3隊中，若有2隊「積分已 >= 我的最大積分 且 H2H已打且贏我」
+    // 剩下第3隊不管結果如何，我都排在這2隊後面，加上第3隊也壓著我 → 確定第4
+    function eliminatedByH2H(tm, myMax){
+      const others = teams.filter(function(t){ return t.zh!==tm.zh; });
+
+      // 「確定壓過我」的隊伍：現有積分 >= 我的最大積分（不管H2H）
+      const definitelyAbove = others.filter(function(t){
+        return (t.w*3+t.d) >= myMax;
+      });
+
+      // 「H2H已打且贏我」的隊伍（在積分可能追平的情況下，H2H決定排名）
+      const h2hBeaten = others.filter(function(rival){
+        const tPts = rival.w*3+rival.d;
+        const tMax = tPts+(3-rival.mp)*3;
+        if(tMax < myMax) return false; // 這隊最多也追不到我，不算威脅
+        const h2h = getH2HPts(tm.zh, rival.zh);
+        if(h2h.a===null) return false; // 還沒打
+        return h2h.b > h2h.a; // H2H 對手贏我
+      });
+
+      // 合併：確定壓過我 + H2H輸的 = 確定排在我前面的隊伍
+      const aheadOf = others.filter(function(t){
+        const tPts = t.w*3+t.d;
+        const definite = tPts >= myMax;
+        const h2hLost = h2hBeaten.some(function(b){ return b.zh===t.zh; });
+        return definite || h2hLost;
+      });
+
+      return aheadOf.length >= 3; // 3隊都確定排在我前面 → 我是第4名 → 出局
+    }
+
+    // 按積分排序取得各隊排名
+    const sortedByPts = teams.slice().sort(function(a,b){
+      const pa=a.w*3+a.d, pb=b.w*3+b.d;
+      if(pb!==pa) return pb-pa;
+      if((b.gf-b.ga)!==(a.gf-a.ga)) return (b.gf-b.ga)-(a.gf-a.ga);
+      return b.gf-a.gf;
+    });
+
+    teams.forEach(function(tm){
       const pts=tm.w*3+tm.d;
       const rem=3-tm.mp;
       const myMax=pts+rem*3;
       const myMin=pts;
+      const rankI=sortedByPts.findIndex(function(t){return t.zh===tm.zh;});
 
-      // 確定晉級：純積分 OR H2H補強 OR 手動覆蓋
-      const mathQualified = i<=1 && myMin > p3+r3*3;
-      const h2hQualified  = i<=1 && !mathQualified && qualifiedByH2H(tm, pts);
+      // 確定晉級：純積分 OR H2H OR 手動
+      const mathQualified = rankI<=1 && myMin > p3+r3*3;
+      const h2hQualified  = rankI<=1 && !mathQualified && qualifiedByH2H(tm, pts);
       const qualified = mathQualified || h2hQualified || MANUAL_QUALIFIED.includes(tm.zh);
-      const eliminated = !qualified && (myMax < p2 || MANUAL_ELIMINATED.includes(tm.zh));
+
+      // 確定出局（第4名）：純積分追不上第3名 OR H2H確定第4 OR 手動
+      const mathEliminated = !qualified && myMax < p3;
+      const h2hEliminated  = !qualified && !mathEliminated && eliminatedByH2H(tm, myMax);
+      const eliminated = mathEliminated || h2hEliminated || MANUAL_ELIMINATED.includes(tm.zh);
+      if(eliminated) CONFIRMED_ELIMINATED.add(tm.zh); else CONFIRMED_ELIMINATED.delete(tm.zh);
 
       const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
       const borderL=qualified?'#10b981':eliminated?'#ef4444':'#334155';
@@ -1794,25 +1932,25 @@ function renderStandings(){
         +formArr.map(function(r){return '<span style="width:8px;height:8px;border-radius:50%;background:'+formDotColor[r]+';flex-shrink:0;display:inline-block"></span>';}).join('')
         +'</div>';
       const gdColor=tm.gd>0?'#34d399':tm.gd<0?'#f87171':'#94a3b8';
-      const ptsColor=i<2?'#fbbf24':i===2?'#fb923c':'#64748b';
-      const isLast=i===teams.length-1;
+      const ptsColor=rankI<2?'#fbbf24':rankI===2?'#fb923c':'#64748b';
+      const isLast=sortedByPts.indexOf(tm)===teams.length-1;
       h+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 12px;'
         +'border-bottom:'+(isLast?'none':'1px solid rgba(255,255,255,.07)')+';'
         +'border-left:4px solid '+borderL+';background:'+rowBg+'">'
         +'<div style="display:flex;align-items:center;gap:7px;min-width:0">'
-        +'<span style="font-size:12px;font-weight:700;color:'+rkColor+';width:14px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+rkColor+';width:14px;text-align:center;flex-shrink:0">'+(rankI+1)+'</span>'
         +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:22px;height:15px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.2);flex-shrink:0" onerror="this.style.display=\'none\'">'
-        +'<span style="font-size:13px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
+        +'<span style="font-size:13px;font-weight:'+(eliminated?'700':'800')+';color:'+(eliminated?'#94a3b8':'#f1f5f9')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
         +'</div>'
         +'<div style="display:grid;grid-template-columns:repeat(7,22px) 30px 54px;text-align:center;align-items:center">'
-        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.mp+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.w+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.d+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.l+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.gf+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(eliminated?'#64748b':'#cbd5e1')+'">'+tm.mp+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(eliminated?'#64748b':'#cbd5e1')+'">'+tm.w+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(eliminated?'#64748b':'#cbd5e1')+'">'+tm.d+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(eliminated?'#64748b':'#cbd5e1')+'">'+tm.l+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(eliminated?'#64748b':'#cbd5e1')+'">'+tm.gf+'</span>'
         +'<span style="font-size:12px;font-weight:700;color:#cbd5e1">'+tm.ga+'</span>'
         +'<span style="font-size:12px;font-weight:800;color:'+gdColor+'">'+gdStr+'</span>'
-        +'<span style="font-size:13px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.15);border-radius:4px;padding:1px 0">'+tm.pts+'</span>'
+        +'<span style="font-size:13px;font-weight:900;color:'+ptsColor+';background:rgba(251,191,36,.15);border-radius:4px;padding:1px 0">'+pts+'</span>'
         +formHtml
         +'</div></div>';
     });
@@ -1836,8 +1974,8 @@ function renderStandings(){
   // Step 2: rank teams
   // 手動確定出局的放最後；有出賽的排前面；再依 Pts→GD→GF
   thirdPlaces.sort(function(a,b){
-    const aElim=MANUAL_ELIMINATED.includes(a.zh)?1:0;
-    const bElim=MANUAL_ELIMINATED.includes(b.zh)?1:0;
+    const aElim=CONFIRMED_ELIMINATED.has(a.zh)?1:0;
+    const bElim=CONFIRMED_ELIMINATED.has(b.zh)?1:0;
     if(aElim!==bElim) return aElim-bElim; // 確定出局的排最後
     const aPlayed=a.mp>0?1:0;
     const bPlayed=b.mp>0?1:0;
@@ -1879,7 +2017,7 @@ function renderStandings(){
     +'</div></div>';
 
   thirdPlaces.forEach(function(tm,i){
-    const isConfirmedElim=MANUAL_ELIMINATED.includes(tm.zh);
+    const isConfirmedElim=CONFIRMED_ELIMINATED.has(tm.zh);
     const isThrough=i<8&&!isConfirmedElim;
     const isPending=!isThrough&&!isConfirmedElim; // 9名外但還未確定出局
     const rowBg=isThrough?'rgba(245,158,11,.07)':isConfirmedElim?'rgba(239,68,68,.08)':'rgba(255,255,255,.02)';
@@ -1991,6 +2129,40 @@ function switchTab(tab){
 // ══ Knockout bracket ══════════════════════════════════════════════════════════
 function tbd(desc){return{name:desc,code:'',tbd:true}}
 
+// ── 組別晉級位置對照表 ────────────────────────────────────────────────────────
+// 格式：{ matchId, side:'home'|'away' }
+const GROUP_SLOT = {
+  'A1':{id:'M79',side:'home'}, 'A2':{id:'M73',side:'home'},
+  'B1':{id:'M85',side:'home'}, 'B2':{id:'M73',side:'away'},
+  'C1':{id:'M76',side:'home'}, 'C2':{id:'M75',side:'away'},
+  'D1':{id:'M81',side:'home'}, 'D2':{id:'M88',side:'home'},
+  'E1':{id:'M74',side:'home'}, 'E2':{id:'M78',side:'home'},
+  'F1':{id:'M75',side:'home'}, 'F2':{id:'M76',side:'away'},
+  'G1':{id:'M82',side:'home'}, 'G2':{id:'M88',side:'away'},
+  'H1':{id:'M84',side:'home'}, 'H2':{id:'M86',side:'away'},
+  'I1':{id:'M77',side:'home'}, 'I2':{id:'M78',side:'away'},
+  'J1':{id:'M86',side:'home'}, 'J2':{id:'M84',side:'away'},
+  'K1':{id:'M87',side:'home'}, 'K2':{id:'M83',side:'home'},
+  'L1':{id:'M80',side:'home'}, 'L2':{id:'M83',side:'away'},
+};
+
+// 國旗代碼對照（中文名 → flagcdn code）
+const ZH_TO_CODE = {};
+Object.keys(STANDINGS).forEach(function(g){
+  STANDINGS[g].forEach(function(t){ if(t.zh&&t.code) ZH_TO_CODE[t.zh]=t.code; });
+});
+
+// 更新淘汰賽 Bracket 卡片
+function updateBracketSlot(slotKey, zh, code){
+  const slot = GROUP_SLOT[slotKey];
+  if(!slot) return;
+  // 找到對應的 match
+  const round = KO_ROUNDS[0]; // R32
+  const match = round.matches.find(function(m){ return m.id===slot.id; });
+  if(!match) return;
+  match[slot.side] = {name:zh, code:code||ZH_TO_CODE[zh]||'', tbd:false};
+}
+
 const KO_ROUNDS=[
   // R32: 16 matches (M73-M88), display order arranged so bracket pairs are adjacent
   // Pair→R16: (M73,M75)→M90, (M74,M77)→M89, (M76,M78)→M91, (M79,M80)→M92
@@ -1998,7 +2170,7 @@ const KO_ROUNDS=[
   {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
     {id:'M73',date:'6/29 週一',time:'03:00',home:tbd('A2'),away:tbd('B2'),venue:'SoFi Stadium'},
     {id:'M75',date:'6/30 週二',time:'09:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
-    {id:'M74',date:'6/30 週二',time:'04:30',home:{name:'德國',code:'de',tbd:false},away:tbd('最佳第3（ABCDF）'),venue:'Gillette Stadium'},
+    {id:'M74',date:'6/30 週二',time:'04:30',home:tbd('E1'),away:tbd('最佳第3（ABCDF）'),venue:'Gillette Stadium'},
     {id:'M77',date:'7/01 週三',time:'05:00',home:tbd('I1'),away:tbd('最佳第3（CDFGH）'),venue:'MetLife Stadium'},
     {id:'M76',date:'6/30 週二',time:'01:00',home:tbd('C1'),away:tbd('F2'),venue:'NRG Stadium'},
     {id:'M78',date:'7/01 週三',time:'01:00',home:tbd('E2'),away:tbd('I2'),venue:'AT&T Stadium'},
@@ -2006,7 +2178,7 @@ const KO_ROUNDS=[
     {id:'M80',date:'7/02 週四',time:'00:00',home:tbd('L1'),away:tbd('最佳第3（EHIJK）'),venue:'Mercedes-Benz Stadium'},
     {id:'M83',date:'7/03 週五',time:'07:00',home:tbd('K2'),away:tbd('L2'),venue:'BMO Field'},
     {id:'M84',date:'7/03 週五',time:'03:00',home:tbd('H1'),away:tbd('J2'),venue:'SoFi Stadium'},
-    {id:'M81',date:'7/02 週四',time:'08:00',home:{name:'美國',code:'us',tbd:false},away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
+    {id:'M81',date:'7/02 週四',time:'08:00',home:tbd('D1'),away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
     {id:'M82',date:'7/02 週四',time:'04:00',home:tbd('G1'),away:tbd('最佳第3（AEHIJ）'),venue:'Lumen Field'},
     {id:'M86',date:'7/04 週六',time:'06:00',home:tbd('J1'),away:tbd('H2'),venue:'Hard Rock Stadium'},
     {id:'M88',date:'7/04 週六',time:'02:00',home:tbd('D2'),away:tbd('G2'),venue:'AT&T Stadium'},
