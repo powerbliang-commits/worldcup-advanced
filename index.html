@@ -1758,7 +1758,7 @@ function buildConfirmedEliminated(){
           return h2h.a>h2h.b; // H2H 我贏
         });
       })();
-      // 只有數學或H2H確定第一名才填入Bracket，MANUAL_QUALIFIED只代表確定晉級不代表第一
+      // 只有數學或H2H確定第一名才填入Bracket
       if(mathQ1||h2hQ1){
         updateBracketSlot(g+'1', tm.zh, tm.code);
       }
@@ -1775,8 +1775,6 @@ function renderStandings(){
   const wrap=document.getElementById('standingsWrap');
   if(wrap.dataset.lastGroup===stdActiveGroup) return;
   wrap.dataset.lastGroup=stdActiveGroup;
-  CONFIRMED_ELIMINATED.clear(); // 清空後重新計算所有組
-  buildConfirmedEliminated(); // 先把所有組的出局狀態算好，並更新 Bracket
   const koPanel=document.getElementById('koPanel'); if(koPanel&&koPanel.style.display!=='none') renderKO();
 
   const SDC={
@@ -1921,7 +1919,7 @@ function renderStandings(){
       const eliminated = mathEliminated || h2hEliminated || MANUAL_ELIMINATED.includes(tm.zh);
       if(eliminated) CONFIRMED_ELIMINATED.add(tm.zh); else CONFIRMED_ELIMINATED.delete(tm.zh);
 
-      const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.08)':'rgba(255,255,255,.02)';
+      const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
       const borderL=qualified?'#10b981':eliminated?'#ef4444':'#334155';
       const rkColor=qualified?'#10b981':eliminated?'#ef4444':'#94a3b8';
       const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
@@ -2621,6 +2619,7 @@ function applyStandingsData(data){
   if(data.results){
     Object.assign(MATCH_SCORES, data.results);
     // EN_TO_ZH 對照表已在全域宣告，不需要動態建立
+    buildConfirmedEliminated(); // 資料更新後重算出局/晉級狀態並更新 Bracket
     render(); // 重新渲染賽事卡以顯示比數
   }
 }
