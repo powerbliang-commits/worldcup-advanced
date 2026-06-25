@@ -1743,19 +1743,29 @@ function buildConfirmedEliminated(){
       const myMin1 = pts; // 我的最少積分（剩下全輸）
       const mathQ1 = rankIdx===0 && myMin1 > p2+(3-r2mp)*3;
       const h2hQ1  = rankIdx===0 && !mathQ1 && (function(){
-        // 找出「即使我剩下全輸（積分停在pts），還是能追平或超越我」的對手
+        // 全組打完：用完整排序確認是否排第1
+        const allDone = teams.every(function(t){ return t.mp>=3; });
+        if(allDone){
+          const fullSorted = teams.slice().sort(function(a,b){
+            const pa=a.w*3+a.d, pb=b.w*3+b.d;
+            if(pb!==pa) return pb-pa;
+            const gdA=a.gf-a.ga, gdB=b.gf-b.ga;
+            if(gdB!==gdA) return gdB-gdA;
+            return b.gf-a.gf;
+          });
+          return fullSorted[0] && fullSorted[0].zh===tm.zh;
+        }
+        // 未打完：找出能追平我的對手，H2H都打且都贏
         const rivals=teams.filter(function(t){
           if(t.zh===tm.zh) return false;
           const tMax=(t.w*3+t.d)+(3-t.mp)*3;
-          return tMax >= pts; // 對方最多積分 >= 我現有積分
+          return tMax >= pts;
         });
         if(rivals.length===0) return false;
-        // 這些對手必須：H2H 已打完且我都贏
-        // （若平局也不行，因為積分相同時還要比其他條件）
         return rivals.every(function(rival){
           const h2h=getH2HPts(tm.zh,rival.zh);
-          if(h2h.a===null) return false; // 還沒打，無法確定
-          return h2h.a>h2h.b; // H2H 我贏
+          if(h2h.a===null) return false;
+          return h2h.a>h2h.b;
         });
       })();
       // 只有數學或H2H確定第一名才填入Bracket
@@ -1763,8 +1773,17 @@ function buildConfirmedEliminated(){
         updateBracketSlot(g+'1', tm.zh, tm.code);
       }
 
-      // 確定第2名：整組打完且排第2
-      if(teams.every(function(t){return t.mp>=3;}) && rankIdx===1){
+      // 確定第2名：整組打完用完整排序確認排第2
+      if(teams.every(function(t){return t.mp>=3;}) && (function(){
+        const fullSorted = teams.slice().sort(function(a,b){
+          const pa=a.w*3+a.d, pb=b.w*3+b.d;
+          if(pb!==pa) return pb-pa;
+          const gdA=a.gf-a.ga, gdB=b.gf-b.ga;
+          if(gdB!==gdA) return gdB-gdA;
+          return b.gf-a.gf;
+        });
+        return fullSorted[1] && fullSorted[1].zh===tm.zh;
+      })()){
         updateBracketSlot(g+'2', tm.zh, tm.code);
       }
     });
@@ -1844,10 +1863,24 @@ function renderStandings(){
     // 從 MATCH_SCORES 找兩隊之間的對戰結果，計算 H2H 積分
     // getH2HPts 已移至全域
 
-    // 判斷某隊是否因 H2H 確定在前2名
-    // 邏輯：我積分領先 OR 同分但我已打過所有可追平對手且 H2H 都贏
-    // H2H 確定晉級：我跟所有可能追平的對手都已打完且都贏
+    // 判斷某隊是否確定在前2名
     function qualifiedByH2H(tm, myPts){
+      // 全組打完：直接用完整排序（積分→GD→GF）判定前2名
+      const allDone = teams.every(function(t){ return t.mp >= 3; });
+      if(allDone){
+        const fullSorted = teams.slice().sort(function(a,b){
+          const pa=a.w*3+a.d, pb=b.w*3+b.d;
+          if(pb!==pa) return pb-pa;
+          // 同分比整體GD
+          const gdA=a.gf-a.ga, gdB=b.gf-b.ga;
+          if(gdB!==gdA) return gdB-gdA;
+          // 再比GF
+          return b.gf-a.gf;
+        });
+        const myRank = fullSorted.findIndex(function(t){ return t.zh===tm.zh; });
+        return myRank <= 1;
+      }
+      // 未全打完：H2H 確定晉級（所有可追平的對手都已打且我贏）
       const rivals = teams.filter(function(t){
         if(t.zh===tm.zh) return false;
         const tMax = (t.w*3+t.d)+(3-t.mp)*3;
@@ -1856,7 +1889,7 @@ function renderStandings(){
       if(rivals.length===0) return true;
       return rivals.every(function(rival){
         const h2h = getH2HPts(tm.zh, rival.zh);
-        if(h2h.a===null) return false; // 還沒打，無法確定
+        if(h2h.a===null) return false;
         return h2h.a > h2h.b;
       });
     }
@@ -2615,13 +2648,13 @@ function applyStandingsData(data){
   const wrap = document.getElementById('standingsWrap');
   if(wrap) wrap.dataset.lastGroup = '__force_refresh__';
 
-  // 儲存比賽比數，同時建立 code→zh 及 enKey→zh 對照
+  // 儲存比賽比數
   if(data.results){
     Object.assign(MATCH_SCORES, data.results);
-    // EN_TO_ZH 對照表已在全域宣告，不需要動態建立
-    buildConfirmedEliminated(); // 資料更新後重算出局/晉級狀態並更新 Bracket
-    render(); // 重新渲染賽事卡以顯示比數
   }
+  // standings 和 results 都更新後，重算出局/晉級並更新 Bracket
+  buildConfirmedEliminated();
+  render();
 }
 
 // ── 呼叫 Cloudflare Worker 抓最新積分 ─────────────────────────────────────────
