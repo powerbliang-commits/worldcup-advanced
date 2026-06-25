@@ -2007,6 +2007,48 @@ function renderStandings(){
 
   // Step 2: rank teams
   // 手動確定出局的放最後；有出賽的排前面；再依 Pts→GD→GF
+  // ── 第3名跨組晉級/淘汰判定 ──────────────────────────────────────────────────
+  // 只取各組第3名（非第4名）參與計算
+  const onlyThirds = thirdPlaces.filter(function(t){ return t.groupRank===3; });
+  onlyThirds.forEach(function(t){ t.rem = Math.max(0, 3-t.mp); });
+
+  function thirdPlaceWorstRank(team){
+    // 最壞情況：其他所有第3名剩餘全贏（pts+rem*3），GD每場+1
+    const sim = onlyThirds.map(function(t){
+      if(t.zh===team.zh) return {zh:t.zh, pts:t.pts, gd:t.gd, gf:t.gf};
+      return {zh:t.zh, pts:t.pts+t.rem*3, gd:t.gd+t.rem*1, gf:t.gf+t.rem*1};
+    });
+    sim.sort(function(a,b){ return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf; });
+    return sim.findIndex(function(t){ return t.zh===team.zh; });
+  }
+  function thirdPlaceBestRank(team){
+    // 最佳情況：我剩餘全贏，其他隊維持現況
+    const sim = onlyThirds.map(function(t){
+      if(t.zh===team.zh) return {zh:t.zh, pts:t.pts+t.rem*3, gd:t.gd+t.rem*3, gf:t.gf+t.rem*3};
+      return {zh:t.zh, pts:t.pts, gd:t.gd, gf:t.gf};
+    });
+    sim.sort(function(a,b){ return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf; });
+    return sim.findIndex(function(t){ return t.zh===team.zh; });
+  }
+
+  // 計算每隊狀態
+  thirdPlaces.forEach(function(tm){
+    tm.rem = Math.max(0, 3 - tm.mp);
+    if(CONFIRMED_ELIMINATED.has(tm.zh)){ tm._t3status='elim'; return; }
+    if(tm.groupRank===4){
+      // 第4名：只有在最佳情況還是排9名外才確定淘汰
+      const bestRank = thirdPlaceBestRank(tm);
+      tm._t3status = bestRank>=8 ? 'out' : 'pending';
+      return;
+    }
+    // 第3名：正常判定
+    const worstRank = thirdPlaceWorstRank(tm);
+    const bestRank  = thirdPlaceBestRank(tm);
+    if(worstRank < 8)  tm._t3status='through';
+    else if(bestRank >= 8) tm._t3status='out';
+    else tm._t3status='pending';
+  });
+
   thirdPlaces.sort(function(a,b){
     const aElim=CONFIRMED_ELIMINATED.has(a.zh)?1:0;
     const bElim=CONFIRMED_ELIMINATED.has(b.zh)?1:0;
@@ -2051,12 +2093,12 @@ function renderStandings(){
     +'</div></div>';
 
   thirdPlaces.forEach(function(tm,i){
-    const isConfirmedElim=CONFIRMED_ELIMINATED.has(tm.zh);
-    const isThrough=i<8&&!isConfirmedElim;
-    const isPending=!isThrough&&!isConfirmedElim; // 9名外但還未確定出局
-    const rowBg=isThrough?'rgba(245,158,11,.07)':isConfirmedElim?'rgba(239,68,68,.08)':'rgba(255,255,255,.02)';
-    const borderL=isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#334155';
-    const rankColor=isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#64748b';
+    const isConfirmedElim = CONFIRMED_ELIMINATED.has(tm.zh) || tm._t3status==='out';
+    const isClinched      = tm._t3status==='through';   // 數學確定前8
+    const isThrough       = i<8 && !isConfirmedElim;    // 目前排前8（含確定）
+    const rowBg    = isClinched?'rgba(245,158,11,.13)':isThrough?'rgba(245,158,11,.07)':isConfirmedElim?'rgba(239,68,68,.08)':'rgba(255,255,255,.02)';
+    const borderL  = isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#334155';
+    const rankColor= isThrough?'#F59E0B':isConfirmedElim?'#ef4444':'#64748b';
     const gdStr=tm.gd>0?'+'+tm.gd:String(tm.gd);
     const gdColor=tm.gd>0?'#34d399':tm.gd<0?'#f87171':'#94a3b8';
     const ptsColor=isThrough?'#fbbf24':'#64748b';
@@ -2077,13 +2119,17 @@ function renderStandings(){
       +'border-left:5px solid '+borderL+';background:'+rowBg+';'+borderTop+'">'
       +'<div style="display:flex;align-items:center;gap:10px;min-width:0">'
       +'<span style="font-size:15px;font-weight:900;color:'+rankColor+';width:24px;text-align:center;flex-shrink:0">'+(i+1)+'</span>'
-      +(isThrough
+      +(isClinched
         ?'<span style="font-size:10px;background:#F59E0B;color:#000;border-radius:4px;padding:2px 6px;font-weight:900;flex-shrink:0;letter-spacing:.03em">晉級</span>'
-        :isConfirmedElim
-          ?'<span style="font-size:10px;background:#ef4444;color:#fff;border-radius:4px;padding:2px 6px;font-weight:800;flex-shrink:0">出局</span>'
-          :'<span style="font-size:10px;background:rgba(99,130,255,.15);color:#94a3b8;border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">待定</span>')
+        :isThrough
+          ?'<span style="font-size:10px;background:rgba(245,158,11,.2);color:#F59E0B;border-radius:4px;padding:2px 6px;font-weight:800;flex-shrink:0;letter-spacing:.03em">晉級</span>'
+          :isConfirmedElim
+            ?'<span style="font-size:10px;background:#ef4444;color:#fff;border-radius:4px;padding:2px 6px;font-weight:800;flex-shrink:0">出局</span>'
+            :'<span style="font-size:10px;background:rgba(99,130,255,.15);color:#94a3b8;border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">待定</span>')
       +'<img src="https://flagcdn.com/32x24/'+tm.code+'.png" alt="" style="width:26px;height:18px;object-fit:cover;border-radius:2px;border:1px solid rgba(99,130,255,.25);flex-shrink:0" onerror="this.style.display=&quot;none&quot;">'
-      +'<span style="font-size:14px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh+'</span>'
+      +'<span style="font-size:14px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tm.zh
+      +(isClinched?' <span style="font-size:12px">✓</span>':'')
+      +'</span>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:36px repeat(7,34px) 44px 70px;text-align:center;align-items:center">'
       +'<span style="font-size:13px;font-weight:800;color:'+t.bdr+';background:'+t.bdr+'22;border-radius:4px;padding:2px 0">'+tm.group+'</span>'
@@ -2102,9 +2148,10 @@ function renderStandings(){
   h+='</div>'  // close table card
     // Legend
     +'<div style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:#64748b;font-weight:600">'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>晉級 R32（前8名）</span>'
-    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>出局（第9-24名）</span>'
-    +'<span style="font-size:10px;color:#475569">※ 依 Pts→GD→GF→紀律分→FIFA排名 排序</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>晉級 R32（前8）</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(245,158,11,.2);border:1px solid #F59E0B;display:inline-block"></span>目前前8（待定）</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>確定出局</span>'
+    +'<span style="font-size:10px;color:#475569">※ 依 Pts→GD→GF 排序　✓ = 數學確定晉級</span>'
     +'</div>'
     +'</div>';  // close margin-top div
 
