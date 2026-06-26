@@ -506,6 +506,7 @@ const WC_STORAGE_KEY = 'wc2026_standings';
 const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
 const CONFIRMED_ELIMINATED = new Set(); // 由積分榜邏輯動態填入
+const CONFIRMED_T3_THROUGH = new Set(); // 第3名跨組確定晉級的隊伍
 const ZH_TO_EN      = {}; // 中文名 → 英文名（從 MATCH_SCORES key 反推）
 
 // ── 英文名 → 中文名對照（與 Worker EN_MAP 一致）──────────────────────────────
@@ -1686,6 +1687,7 @@ function getH2HPts(zhA, zhB){
 // 預先計算所有組的確定出局隊伍，填入 CONFIRMED_ELIMINATED
 function buildConfirmedEliminated(){
   CONFIRMED_ELIMINATED.clear();
+  CONFIRMED_T3_THROUGH.clear();
   const allGroups='ABCDEFGHIJKL'.split('');
   allGroups.forEach(function(g){
     const teams=STANDINGS[g];
@@ -1788,6 +1790,68 @@ function buildConfirmedEliminated(){
       }
     });
   });
+
+  // ── 第3名跨組確定晉級判定（窮舉版）────────────────────────────────────────
+  CONFIRMED_T3_THROUGH.clear();
+  var _allGD = {};
+  'ABCDEFGHIJKL'.split('').forEach(function(g){
+    _allGD[g] = (STANDINGS[g]||[]).map(function(t){
+      return {zh:t.zh, pts:t.w*3+t.d, gd:t.gf-t.ga, gf:t.gf, mp:t.mp};
+    });
+  });
+
+  function _srt(arr){ return arr.slice().sort(function(a,b){ return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf; }); }
+
+  function _getScenarios(g){
+    var teams=_allGD[g]; if(!teams||!teams.length) return [];
+    if(teams.every(function(t){return t.mp>=3;})){
+      var t3=_srt(teams)[2]; return t3?[{pts:t3.pts,gd:t3.gd,gf:t3.gf}]:[];
+    }
+    var played=new Set();
+    Object.keys(MATCH_SCORES).forEach(function(key){
+      var parts=key.split('|'); if(parts.length!==2) return;
+      var z1=EN_TO_ZH[parts[0]],z2=EN_TO_ZH[parts[1]]; if(!z1||!z2) return;
+      var in1=teams.some(function(t){return t.zh===z1;}),in2=teams.some(function(t){return t.zh===z2;});
+      if(in1&&in2){played.add(z1+'|'+z2);played.add(z2+'|'+z1);}
+    });
+    var pairs=[];
+    for(var i=0;i<teams.length;i++) for(var j=i+1;j<teams.length;j++){
+      var a=teams[i].zh,b=teams[j].zh;
+      if(!played.has(a+'|'+b)) pairs.push({home:a,away:b});
+    }
+    pairs=pairs.slice(0,2);
+    if(!pairs.length){var t3=_srt(teams)[2];return t3?[{pts:t3.pts,gd:t3.gd,gf:t3.gf}]:[];}
+    var sc=[{h:1,a:0},{h:1,a:1},{h:0,a:1}];
+    var results=[];
+    sc.forEach(function(s1){sc.forEach(function(s2){
+      var sim=teams.map(function(t){return Object.assign({},t);});
+      [{s:s1,p:pairs[0]},{s:s2,p:pairs[1]}].forEach(function(x){
+        if(!x.p) return;
+        sim.forEach(function(t){
+          if(t.zh===x.p.home){t.gf+=x.s.h;t.gd+=x.s.h-x.s.a;if(x.s.h>x.s.a)t.pts+=3;else if(x.s.h===x.s.a)t.pts+=1;}
+          else if(t.zh===x.p.away){t.gf+=x.s.a;t.gd+=x.s.a-x.s.h;if(x.s.a>x.s.h)t.pts+=3;else if(x.s.h===x.s.a)t.pts+=1;}
+        });
+      });
+      var t3=_srt(sim)[2]; if(t3) results.push({pts:t3.pts,gd:t3.gd,gf:t3.gf});
+    });});
+    return results;
+  }
+
+  function _exc(a,b){if(a.pts!==b.pts)return a.pts>b.pts;if(a.gd!==b.gd)return a.gd>b.gd;return a.gf>b.gf;}
+
+  'ABCDEFGHIJKL'.split('').forEach(function(g){
+    var teams=_allGD[g]; if(!teams||!teams.length) return;
+    var t3=_srt(teams)[2]; if(!t3) return;
+    var tgt={pts:t3.pts,gd:t3.gd,gf:t3.gf};
+    var safe=0; var safeGs=[];
+    'ABCDEFGHIJKL'.split('').forEach(function(og){
+      if(og===g) return;
+      var sc=_getScenarios(og);
+      if(sc.every(function(s){return !_exc(s,tgt);})){safe++;safeGs.push(og);}
+    });
+    console.log('[T3] '+g+'組 '+t3.zh+' pts='+tgt.pts+' gd='+tgt.gd+' gf='+tgt.gf+' safe='+safe+'/11 '+JSON.stringify(safeGs));
+    if(safe>=4) CONFIRMED_T3_THROUGH.add(t3.zh);
+  });
 }
 
 function renderStandings(){
@@ -1815,9 +1879,8 @@ function renderStandings(){
 
   // ── Legend ──────────────────────────────────────────────────────────────
   let h='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:10px">'
-    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#10B981;display:inline-block"></span>晉級（前2名）</span>'
-    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block"></span>可能晉級（第3名）</span>'
-    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block"></span>出局</span>'
+    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#10B981;display:inline-block"></span>晉級</span>'
+    +'<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block"></span>出局</span>'
     +'</div>';
 
   // ── Cards grid ──────────────────────────────────────────────────────────
@@ -1944,7 +2007,7 @@ function renderStandings(){
       // 確定晉級：純積分 OR H2H OR 手動
       const mathQualified = rankI<=1 && myMin > p3+r3*3;
       const h2hQualified  = rankI<=1 && !mathQualified && qualifiedByH2H(tm, pts);
-      const qualified = mathQualified || h2hQualified || MANUAL_QUALIFIED.includes(tm.zh);
+      const qualified = mathQualified || h2hQualified || MANUAL_QUALIFIED.includes(tm.zh) || CONFIRMED_T3_THROUGH.has(tm.zh);
 
       // 確定出局（第4名）：純積分追不上第3名 OR H2H確定第4 OR 手動
       const mathEliminated = !qualified && myMax < p3;
@@ -2041,12 +2104,14 @@ function renderStandings(){
       tm._t3status = bestRank>=8 ? 'out' : 'pending';
       return;
     }
-    // 第3名：正常判定
-    const worstRank = thirdPlaceWorstRank(tm);
-    const bestRank  = thirdPlaceBestRank(tm);
-    if(worstRank < 8)  tm._t3status='through';
-    else if(bestRank >= 8) tm._t3status='out';
-    else tm._t3status='pending';
+    // 第3名：用 buildConfirmedEliminated 算好的 CONFIRMED_T3_THROUGH 判定
+    if(CONFIRMED_T3_THROUGH.has(tm.zh)){
+      tm._t3status='through';
+    } else {
+      // 最佳情況判斷是否確定淘汰
+      const bestRank = thirdPlaceBestRank(tm);
+      tm._t3status = bestRank >= 8 ? 'out' : 'pending';
+    }
   });
 
   thirdPlaces.sort(function(a,b){
