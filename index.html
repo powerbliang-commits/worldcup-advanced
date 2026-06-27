@@ -2085,10 +2085,11 @@ function renderStandings(){
     return sim.findIndex(function(t){ return t.zh===team.zh; });
   }
   function thirdPlaceBestRank(team){
-    // 最佳情況：我剩餘全贏，其他隊維持現況
+    // 確定淘汰：我全贏（最佳），其他隊維持現況（最樂觀）
+    // 只有在這種最好情況下還是排第9以外，才算確定淘汰
     const sim = onlyThirds.map(function(t){
       if(t.zh===team.zh) return {zh:t.zh, pts:t.pts+t.rem*3, gd:t.gd+t.rem*3, gf:t.gf+t.rem*3};
-      return {zh:t.zh, pts:t.pts, gd:t.gd, gf:t.gf};
+      return {zh:t.zh, pts:t.pts, gd:t.gd, gf:t.gf}; // 其他隊維持現況
     });
     sim.sort(function(a,b){ return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf; });
     return sim.findIndex(function(t){ return t.zh===team.zh; });
@@ -2115,8 +2116,8 @@ function renderStandings(){
   });
 
   thirdPlaces.sort(function(a,b){
-    const aElim=CONFIRMED_ELIMINATED.has(a.zh)?1:0;
-    const bElim=CONFIRMED_ELIMINATED.has(b.zh)?1:0;
+    const aElim=(CONFIRMED_ELIMINATED.has(a.zh)||a._t3status==='out'||a._t3status==='elim')?1:0;
+    const bElim=(CONFIRMED_ELIMINATED.has(b.zh)||b._t3status==='out'||b._t3status==='elim')?1:0;
     if(aElim!==bElim) return aElim-bElim; // 確定出局的排最後
     const aPlayed=a.mp>0?1:0;
     const bPlayed=b.mp>0?1:0;
