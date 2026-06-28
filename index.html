@@ -507,6 +507,7 @@ const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
 const CONFIRMED_ELIMINATED = new Set(); // 由積分榜邏輯動態填入
 const CONFIRMED_T3_THROUGH = new Set(); // 第3名跨組確定晉級的隊伍
+const CONFIRMED_T3_OUT    = new Set(); // 第3名跨組確定淘汰的隊伍
 const ZH_TO_EN      = {}; // 中文名 → 英文名（從 MATCH_SCORES key 反推）
 
 // ── 英文名 → 中文名對照（與 Worker EN_MAP 一致）──────────────────────────────
@@ -1688,6 +1689,7 @@ function getH2HPts(zhA, zhB){
 function buildConfirmedEliminated(){
   CONFIRMED_ELIMINATED.clear();
   CONFIRMED_T3_THROUGH.clear();
+  CONFIRMED_T3_OUT.clear();
   const allGroups='ABCDEFGHIJKL'.split('');
   allGroups.forEach(function(g){
     const teams=STANDINGS[g];
@@ -1735,7 +1737,11 @@ function buildConfirmedEliminated(){
         h2hElim=aheadOf.length>=3;
       }
 
-      if(mathElim||h2hElim||MANUAL_ELIMINATED.includes(tm.zh)){
+      // 全組打完：第4名確定出局
+      const allDoneB = teams.every(function(t){return t.mp>=3;});
+      const allDoneElim4 = allDoneB && rankIdx===3;
+      const allDoneElim3 = allDoneB && rankIdx===2 && CONFIRMED_T3_OUT.has(tm.zh);
+      if(mathElim||h2hElim||allDoneElim4||allDoneElim3||MANUAL_ELIMINATED.includes(tm.zh)){
         CONFIRMED_ELIMINATED.add(tm.zh);
       }
 
@@ -1839,18 +1845,34 @@ function buildConfirmedEliminated(){
 
   function _exc(a,b){if(a.pts!==b.pts)return a.pts>b.pts;if(a.gd!==b.gd)return a.gd>b.gd;return a.gf>b.gf;}
 
+  // 先計算所有組的 safe 數，再判斷確定晉級/淘汰
+  var t3SafeMap = {};
   'ABCDEFGHIJKL'.split('').forEach(function(g){
     var teams=_allGD[g]; if(!teams||!teams.length) return;
     var t3=_srt(teams)[2]; if(!t3) return;
-    var tgt={pts:t3.pts,gd:t3.gd,gf:t3.gf};
-    var safe=0; var safeGs=[];
+    var tgt={pts:t3.pts,gd:t3.gd,gf:t3.gf,zh:t3.zh};
+    var safe=0;
     'ABCDEFGHIJKL'.split('').forEach(function(og){
       if(og===g) return;
       var sc=_getScenarios(og);
-      if(sc.every(function(s){return !_exc(s,tgt);})){safe++;safeGs.push(og);}
+      if(sc.every(function(s){return !_exc(s,tgt);})) safe++;
     });
-    console.log('[T3] '+g+'組 '+t3.zh+' pts='+tgt.pts+' gd='+tgt.gd+' gf='+tgt.gf+' safe='+safe+'/11 '+JSON.stringify(safeGs));
+    t3SafeMap[g]={zh:t3.zh,pts:t3.pts,gd:t3.gd,gf:t3.gf,safe:safe};
     if(safe>=4) CONFIRMED_T3_THROUGH.add(t3.zh);
+  });
+
+  // 確定淘汰：最佳情況（我全贏，其他維持現況）還是排9以外
+  // 用跟 thirdPlaceBestRank 相同邏輯
+  var t3List = Object.values(t3SafeMap);
+  t3List.forEach(function(tm){
+    if(CONFIRMED_T3_THROUGH.has(tm.zh)) return; // 已確定晉級，跳過
+    var myBest = {pts:tm.pts+0, gd:tm.gd+0, gf:tm.gf+0}; // 全組打完，rem=0
+    var sim = t3List.map(function(t){
+      return {pts:t.pts, gd:t.gd, gf:t.gf, zh:t.zh};
+    });
+    sim.sort(function(a,b){return b.pts-a.pts||b.gd-a.gd||b.gf-a.gf;});
+    var rank = sim.findIndex(function(t){return t.zh===tm.zh;});
+    if(rank>=8) CONFIRMED_T3_OUT.add(tm.zh);
   });
 }
 
@@ -2004,15 +2026,21 @@ function renderStandings(){
       const myMin=pts;
       const rankI=sortedByPts.findIndex(function(t){return t.zh===tm.zh;});
 
-      // 確定晉級：純積分 OR H2H OR 手動
+      // 確定晉級：純積分 OR H2H OR 手動 OR 第3名確定晉級前8
       const mathQualified = rankI<=1 && myMin > p3+r3*3;
       const h2hQualified  = rankI<=1 && !mathQualified && qualifiedByH2H(tm, pts);
-      const qualified = mathQualified || h2hQualified || MANUAL_QUALIFIED.includes(tm.zh) || CONFIRMED_T3_THROUGH.has(tm.zh);
+      // 全組打完：第3名若確定晉級前8也標綠
+      const allDone = teams.every(function(t){ return t.mp>=3; });
+      const t3Qualified = allDone && rankI===2 && CONFIRMED_T3_THROUGH.has(tm.zh);
+      const qualified = mathQualified || h2hQualified || t3Qualified || MANUAL_QUALIFIED.includes(tm.zh);
 
-      // 確定出局（第4名）：純積分追不上第3名 OR H2H確定第4 OR 手動
+      // 確定出局：純積分 OR H2H OR 全組打完排第4 OR 全組打完第3名確定淘汰 OR 手動
       const mathEliminated = !qualified && myMax < p3;
       const h2hEliminated  = !qualified && !mathEliminated && eliminatedByH2H(tm, myMax);
-      const eliminated = mathEliminated || h2hEliminated || MANUAL_ELIMINATED.includes(tm.zh);
+      // 全組打完：第4名確定出局；第3名若不在 CONFIRMED_T3_THROUGH 且已有8支更高排名隊也出局
+      const allDoneElim4th = !qualified && allDone && rankI===3;
+      const allDoneElim3rd = !qualified && allDone && rankI===2 && CONFIRMED_T3_OUT.has(tm.zh);
+      const eliminated = mathEliminated || h2hEliminated || allDoneElim4th || allDoneElim3rd || MANUAL_ELIMINATED.includes(tm.zh);
       if(eliminated) CONFIRMED_ELIMINATED.add(tm.zh); else CONFIRMED_ELIMINATED.delete(tm.zh);
 
       const rowBg=qualified?'rgba(16,185,129,.22)':eliminated?'rgba(239,68,68,.18)':'rgba(255,255,255,.02)';
@@ -2111,7 +2139,12 @@ function renderStandings(){
     } else {
       // 最佳情況判斷是否確定淘汰
       const bestRank = thirdPlaceBestRank(tm);
-      tm._t3status = bestRank >= 8 ? 'out' : 'pending';
+      if(bestRank >= 8){
+        tm._t3status='out';
+        CONFIRMED_T3_OUT.add(tm.zh);
+      } else {
+        tm._t3status='pending';
+      }
     }
   });
 
