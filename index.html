@@ -1776,7 +1776,7 @@ function buildConfirmedEliminated(){
       }
 
       // 確定第2名：整組打完用完整排序確認排第2
-      if(teams.every(function(t){return t.mp>=3;}) && (function(){
+      if(teams.every(function(t){return t.mp>=3;})){
         const fullSorted = teams.slice().sort(function(a,b){
           const pa=a.w*3+a.d, pb=b.w*3+b.d;
           if(pb!==pa) return pb-pa;
@@ -1784,9 +1784,9 @@ function buildConfirmedEliminated(){
           if(gdB!==gdA) return gdB-gdA;
           return b.gf-a.gf;
         });
-        return fullSorted[1] && fullSorted[1].zh===tm.zh;
-      })()){
-        updateBracketSlot(g+'2', tm.zh, tm.code);
+        if(fullSorted[1] && fullSorted[1].zh===tm.zh){
+          updateBracketSlot(g+'2', tm.zh, tm.code);
+        }
       }
     });
   });
@@ -2315,22 +2315,22 @@ const KO_ROUNDS=[
   // Pair→R16: (M73,M75)→M90, (M74,M77)→M89, (M76,M78)→M91, (M79,M80)→M92
   //           (M83,M84)→M93, (M81,M82)→M94, (M86,M88)→M95, (M85,M87)→M96
   {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
-    {id:'M73',date:'6/29 週一',time:'03:00',home:tbd('A2'),away:tbd('B2'),venue:'SoFi Stadium'},
-    {id:'M75',date:'6/30 週二',time:'09:00',home:tbd('F1'),away:tbd('C2'),venue:'Estadio BBVA'},
-    {id:'M74',date:'6/30 週二',time:'04:30',home:tbd('E1'),away:tbd('最佳第3（ABCDF）'),venue:'Gillette Stadium'},
-    {id:'M77',date:'7/01 週三',time:'05:00',home:tbd('I1'),away:tbd('最佳第3（CDFGH）'),venue:'MetLife Stadium'},
-    {id:'M76',date:'6/30 週二',time:'01:00',home:tbd('C1'),away:tbd('F2'),venue:'NRG Stadium'},
-    {id:'M78',date:'7/01 週三',time:'01:00',home:tbd('E2'),away:tbd('I2'),venue:'AT&T Stadium'},
-    {id:'M79',date:'7/01 週三',time:'09:00',home:tbd('A1'),away:tbd('最佳第3（CEFHI）'),venue:'Estadio Azteca'},
-    {id:'M80',date:'7/02 週四',time:'00:00',home:tbd('L1'),away:tbd('最佳第3（EHIJK）'),venue:'Mercedes-Benz Stadium'},
-    {id:'M83',date:'7/03 週五',time:'07:00',home:tbd('K2'),away:tbd('L2'),venue:'BMO Field'},
-    {id:'M84',date:'7/03 週五',time:'03:00',home:tbd('H1'),away:tbd('J2'),venue:'SoFi Stadium'},
-    {id:'M81',date:'7/02 週四',time:'08:00',home:tbd('D1'),away:tbd('最佳第3（BEIJ）'),venue:"Levi's Stadium"},
-    {id:'M82',date:'7/02 週四',time:'04:00',home:tbd('G1'),away:tbd('最佳第3（AEHIJ）'),venue:'Lumen Field'},
-    {id:'M86',date:'7/04 週六',time:'06:00',home:tbd('J1'),away:tbd('H2'),venue:'Hard Rock Stadium'},
-    {id:'M88',date:'7/04 週六',time:'02:00',home:tbd('D2'),away:tbd('G2'),venue:'AT&T Stadium'},
-    {id:'M85',date:'7/03 週五',time:'11:00',home:tbd('B1'),away:tbd('最佳第3（DEIJL）'),venue:'BC Place'},
-    {id:'M87',date:'7/04 週六',time:'09:30',home:tbd('K1'),away:tbd('最佳第3（DEIJL）'),venue:'Arrowhead Stadium'},
+    {id:'M73',date:'6/29 週一',time:'03:00',home:{name:'南非',code:'za',tbd:false},away:{name:'加拿大',code:'ca',tbd:false},venue:'SoFi Stadium'},
+    {id:'M75',date:'6/30 週二',time:'09:00',home:{name:'荷蘭',code:'nl',tbd:false},away:{name:'摩洛哥',code:'ma',tbd:false},venue:'Estadio BBVA'},
+    {id:'M74',date:'6/30 週二',time:'04:30',home:tbd('E1'),away:{name:'巴拉圭',code:'py',tbd:false},venue:'Gillette Stadium'},
+    {id:'M77',date:'7/01 週三',time:'05:00',home:{name:'法國',code:'fr',tbd:false},away:{name:'瑞典',code:'se',tbd:false},venue:'MetLife Stadium'},
+    {id:'M76',date:'6/30 週二',time:'01:00',home:{name:'巴西',code:'br',tbd:false},away:{name:'日本',code:'jp',tbd:false},venue:'NRG Stadium'},
+    {id:'M78',date:'7/01 週三',time:'01:00',home:{name:'象牙海岸',code:'ci',tbd:false},away:{name:'挪威',code:'no',tbd:false},venue:'AT&T Stadium'},
+    {id:'M79',date:'7/01 週三',time:'09:00',home:tbd('A1'),away:{name:'厄瓜多',code:'ec',tbd:false},venue:'Estadio Azteca'},
+    {id:'M80',date:'7/02 週四',time:'00:00',home:{name:'英格蘭',code:'gb-eng',tbd:false},away:tbd('最佳第3（EHIJK）'),venue:'Mercedes-Benz Stadium'},
+    {id:'M83',date:'7/03 週五',time:'07:00',home:tbd('K2'),away:{name:'克羅埃西亞',code:'hr',tbd:false},venue:'BMO Field'},
+    {id:'M84',date:'7/03 週五',time:'03:00',home:{name:'西班牙',code:'es',tbd:false},away:tbd('J2'),venue:'SoFi Stadium'},
+    {id:'M81',date:'7/02 週四',time:'08:00',home:tbd('D1'),away:{name:'波斯尼亞',code:'ba',tbd:false},venue:"Levi's Stadium"},
+    {id:'M82',date:'7/02 週四',time:'04:00',home:{name:'比利時',code:'be',tbd:false},away:tbd('最佳第3（AEHIJ）'),venue:'Lumen Field'},
+    {id:'M86',date:'7/04 週六',time:'06:00',home:{name:'阿根廷',code:'ar',tbd:false},away:{name:'維德角',code:'cv',tbd:false},venue:'Hard Rock Stadium'},
+    {id:'M88',date:'7/04 週六',time:'02:00',home:{name:'澳洲',code:'au',tbd:false},away:{name:'埃及',code:'eg',tbd:false},venue:'AT&T Stadium'},
+    {id:'M85',date:'7/03 週五',time:'11:00',home:{name:'瑞士',code:'ch',tbd:false},away:tbd('最佳第3（DEIJL）'),venue:'BC Place'},
+    {id:'M87',date:'7/04 週六',time:'09:30',home:tbd('K1'),away:{name:'迦納',code:'gh',tbd:false},venue:'Arrowhead Stadium'},
   ]},
   // R16: display order matches R32 bracket pairs (M90,M89,M91,M92,M93,M94,M95,M96)
   // QF pairs: (M90,M89)→M97, (M91,M92)→M99, (M93,M94)→M98, (M95,M96)→M100
@@ -2768,6 +2768,9 @@ function applyStandingsData(data){
   // standings 和 results 都更新後，重算出局/晉級並更新 Bracket
   buildConfirmedEliminated();
   render();
+  // 更新 Bracket 卡片後重新渲染淘汰賽（若目前在淘汰賽頁面）
+  const _koPanel=document.getElementById('koPanel');
+  if(_koPanel&&_koPanel.style.display!=='none') renderKO();
 }
 
 // ── 呼叫 Cloudflare Worker 抓最新積分 ─────────────────────────────────────────
