@@ -476,6 +476,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <!-- Knockout panel -->
   <div id="panelKO" style="display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:flex-end;padding:6px 14px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;gap:10px">
+      <span id="koBadge" style="font-size:11px;color:#94a3b8;font-weight:600"></span>
+      <button onclick="fetchStandingsFromAPI()" style="padding:4px 12px;background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4);border-radius:6px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔄 更新賽果</button>
+    </div>
     <div class="ko-wrap" id="koWrap">
       <div class="ko-panel" id="koContent"></div>
     </div>
@@ -2309,6 +2313,78 @@ function switchTab(tab){
 // ══ Knockout bracket ══════════════════════════════════════════════════════════
 function tbd(desc){return{name:desc,code:'',tbd:true}}
 
+// ── 比賽贏家填入下一輪對照表 ──────────────────────────────────────────────────
+// 格式：每場比賽的贏家 → 下一輪的哪場哪邊
+const WINNER_SLOT = {
+  'M73':{id:'M90',side:'home'}, 'M74':{id:'M89',side:'home'},
+  'M75':{id:'M90',side:'away'}, 'M76':{id:'M91',side:'home'},
+  'M77':{id:'M89',side:'away'}, 'M78':{id:'M91',side:'away'},
+  'M79':{id:'M92',side:'home'}, 'M80':{id:'M92',side:'away'},
+  'M81':{id:'M94',side:'home'}, 'M82':{id:'M94',side:'away'},
+  'M83':{id:'M93',side:'home'}, 'M84':{id:'M93',side:'away'},
+  'M85':{id:'M96',side:'away'}, 'M86':{id:'M95',side:'home'},
+  'M87':{id:'M96',side:'home'}, 'M88':{id:'M95',side:'away'},
+  // R16 → QF
+  'M89':{id:'M97',side:'home'}, 'M90':{id:'M97',side:'away'},
+  'M91':{id:'M99',side:'home'}, 'M92':{id:'M99',side:'away'},
+  'M93':{id:'M98',side:'home'}, 'M94':{id:'M98',side:'away'},
+  'M95':{id:'M100',side:'home'},'M96':{id:'M100',side:'away'},
+  // QF → SF
+  'M97':{id:'M101',side:'home'},'M98':{id:'M101',side:'away'},
+  'M99':{id:'M102',side:'home'},'M100':{id:'M102',side:'away'},
+  // SF → Final / 3rd place
+  'M101':{id:'M104',side:'home'},'M102':{id:'M104',side:'away'},
+};
+
+// 從 MATCH_SCORES 找某場的贏家中文名
+function getMatchWinner(matchId){
+  // 找到 KO_ROUNDS 裡這場比賽的 home/away
+  var match = null;
+  KO_ROUNDS.forEach(function(round){
+    round.matches.forEach(function(m){
+      if(m.id===matchId) match=m;
+    });
+  });
+  if(!match) return null;
+  // 找到對應的 MATCH_SCORES key
+  var homeZh = match.home && !match.home.tbd ? match.home.name : null;
+  var awayZh = match.away && !match.away.tbd ? match.away.name : null;
+  if(!homeZh||!awayZh) return null;
+  // 找英文名
+  var homeEn=null, awayEn=null;
+  Object.keys(EN_TO_ZH).forEach(function(en){
+    if(EN_TO_ZH[en]===homeZh) homeEn=en;
+    if(EN_TO_ZH[en]===awayZh) awayEn=en;
+  });
+  if(!homeEn||!awayEn) return null;
+  // 查比分
+  var score = MATCH_SCORES[homeEn+'|'+awayEn] || MATCH_SCORES[awayEn+'|'+homeEn];
+  if(!score) return null;
+  var flipped = !!MATCH_SCORES[awayEn+'|'+homeEn] && !MATCH_SCORES[homeEn+'|'+awayEn];
+  var s1 = flipped ? score.s2 : score.s1;
+  var s2 = flipped ? score.s1 : score.s2;
+  if(s1===s2) return null; // 平局（淘汰賽不應有）
+  var winnerZh = s1>s2 ? homeZh : awayZh;
+  var winnerCode = s1>s2 ? match.home.code : match.away.code;
+  return {name:winnerZh, code:winnerCode};
+}
+
+// 根據已有比賽結果，自動填入下一輪賽事卡
+function updateKOBracketFromResults(){
+  Object.keys(WINNER_SLOT).forEach(function(matchId){
+    var winner = getMatchWinner(matchId);
+    if(!winner) return;
+    var slot = WINNER_SLOT[matchId];
+    KO_ROUNDS.forEach(function(round){
+      round.matches.forEach(function(m){
+        if(m.id===slot.id){
+          m[slot.side] = {name:winner.name, code:winner.code, tbd:false};
+        }
+      });
+    });
+  });
+}
+
 // ── 組別晉級位置對照表 ────────────────────────────────────────────────────────
 // 格式：{ matchId, side:'home'|'away' }
 const GROUP_SLOT = {
@@ -2751,7 +2827,7 @@ function renderUpdateBadge(){
     const tw = new Date(d.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
     const fmt = (tw.getMonth()+1)+'/'+(tw.getDate())+' '+
                 String(tw.getHours()).padStart(2,'0')+':'+String(tw.getMinutes()).padStart(2,'0');
-    badge.textContent = '📅 上次更新：'+fmt;
+    badge.textContent = '📅 上次更新：'+fmt; const _kb=document.getElementById('koBadge'); if(_kb) _kb.textContent='上次更新：'+fmt;
     badge.style.color = '#e2e8f0';
   } else {
     badge.textContent = '📅 尚未更新（開賽後每日自動抓取）';
@@ -2800,6 +2876,7 @@ function applyStandingsData(data){
   }
   // standings 和 results 都更新後，重算出局/晉級並更新 Bracket
   buildConfirmedEliminated();
+  updateKOBracketFromResults(); // 根據比賽結果自動填入下一輪
   render();
   // 更新 Bracket 卡片後重新渲染淘汰賽（若目前在淘汰賽頁面）
   const _koPanel=document.getElementById('koPanel');
@@ -2810,6 +2887,7 @@ function applyStandingsData(data){
 async function fetchStandingsFromAPI(){
   const badge = document.getElementById('updateBadge');
   if(badge){ badge.textContent='更新中...'; badge.style.display='inline-block'; badge.style.color='#fbbf24'; }
+  const koBadge=document.getElementById('koBadge'); if(koBadge) koBadge.textContent='更新中...';
 
   try {
     const res = await fetch('https://cool-rice-7f3d.power-b-liang.workers.dev/');
