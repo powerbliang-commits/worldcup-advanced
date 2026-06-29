@@ -190,7 +190,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .bkt-card.final-card{border-color:#F59E0B;border-width:2px;background:#FFFBEB}
 .bkt-card.third-card{border-color:#10B981;border-width:2px;background:#F0FDF4}
 .bkt-card-hdr{display:flex;justify-content:space-between;align-items:center;
-  padding:5px 9px 4px;background:#EFF6FF;border-radius:7px 7px 0 0;
+  padding:4px 8px 3px;background:#EFF6FF;border-radius:7px 7px 0 0;
   border-bottom:1px solid #BFDBFE}
 .bkt-card.final-card .bkt-card-hdr{background:#FEF3C7;border-bottom-color:#FDE68A}
 .bkt-card.third-card .bkt-card-hdr{background:#D1FAE5;border-bottom-color:#6EE7B7}
@@ -198,15 +198,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .bkt-card.final-card .bkt-mid{color:#92400E}
 .bkt-card.third-card .bkt-mid{color:#065F46}
 .bkt-time{font-size:9.5px;font-weight:800;color:#1e3a8a;white-space:nowrap}
-.bkt-team{display:flex;align-items:center;gap:6px;padding:5px 9px}
+.bkt-team{display:flex;align-items:center;gap:5px;padding:4px 8px}
 .bkt-team+.bkt-team{border-top:1px solid #F1F5F9}
-.bkt-flag{width:20px;height:14px;object-fit:cover;border-radius:2px;
+.bkt-flag{width:18px;height:13px;object-fit:cover;border-radius:2px;
   border:1px solid rgba(0,0,0,.1);flex-shrink:0}
-.bkt-name{font-size:12.5px;font-weight:700;color:#1e293b;
+.bkt-name{font-size:12px;font-weight:700;color:#1e293b;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:98px}
 .bkt-tbd{font-size:11px;color:#64748b;font-style:italic;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:105px}
-.bkt-venue{padding:3px 9px 6px;font-size:9px;color:#64748b;font-weight:500;
+.bkt-venue{padding:2px 8px 4px;font-size:9px;color:#64748b;font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Connector column */
 .bkt-conn{flex-shrink:0;position:relative;align-self:stretch;width:32px}
@@ -400,6 +400,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   flex-shrink:0;color:#94a3b8}
 .std-rank.q{color:#10B981}
 .std-rank.t{color:#F59E0B}
+/* Tomorrow/Today match highlight */
+@keyframes wc-pulse{0%{box-shadow:0 0 0 0 rgba(251,191,36,.7)}70%{box-shadow:0 0 0 8px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
+@keyframes wc-glow{0%,100%{border-color:rgba(251,191,36,.6)}50%{border-color:rgba(251,191,36,1)}}
+.bkt-card-tomorrow{border:2px solid rgba(251,191,36,.85);animation:wc-pulse 1.6s ease-out infinite,wc-glow 1.6s ease-in-out infinite}
+.bkt-card-today{border:1.5px solid rgba(239,68,68,.85)!important;box-shadow:0 0 0 2px rgba(239,68,68,.35)!important}
+.bkt-day-badge{display:inline-block;font-size:9px;font-weight:800;border-radius:3px;padding:1px 5px;line-height:1.5;flex-shrink:0}
+.bkt-day-badge.today{background:#ef4444;color:#fff}
+.bkt-day-badge.tomorrow{background:#f59e0b;color:#000}
 /* Legend */
 .std-legend{display:flex;gap:16px;padding:6px 14px 10px;font-size:11px;color:#64748b;font-weight:600}
 .std-legend-item{display:flex;align-items:center;gap:5px}
@@ -2624,21 +2632,77 @@ function reorder(matches, order){
 }
 
 // ── Card builder ──────────────────────────────────────────────────────────────
+function getMatchDayStatus(dateStr){
+  // dateStr like "7/01 週三" → parse M/D in Taiwan time (UTC+8)
+  if(!dateStr) return null;
+  const parts=dateStr.trim().split(' ')[0].split('/');
+  if(parts.length<2) return null;
+  const now=new Date(new Date().getTime()+8*3600*1000);
+  const todayM=now.getUTCMonth()+1, todayD=now.getUTCDate();
+  const m=parseInt(parts[0]), d=parseInt(parts[1]);
+  if(m===todayM && d===todayD) return 'today';
+  // tomorrow
+  const tomorrow=new Date(now); tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
+  const tmM=tomorrow.getUTCMonth()+1, tmD=tomorrow.getUTCDate();
+  if(m===tmM && d===tmD) return 'tomorrow';
+  return null;
+}
+
 function makeBktCard(m){
   const cls=m.isFinal?'bkt-card final-card':m.isThird?'bkt-card third-card':'bkt-card';
   const fullVenue=VENUE_SHORT_MAP[m.venue]||m.venue;
   const el=document.createElement('div');
   el.className=cls; el.dataset.venue=fullVenue;
-  const mk=t=>t.tbd
+  // 今日/明日標示
+  const dayStatus=getMatchDayStatus(m.date);
+
+  if(dayStatus==='today') el.classList.add('bkt-card-today');
+  else if(dayStatus==='tomorrow') el.classList.add('bkt-card-tomorrow');
+  const badgeHtml=(function(){
+    if(!dayStatus) return '';
+    const bg=dayStatus==='today'?'#ef4444':'#f59e0b';
+    const fg=dayStatus==='today'?'#fff':'#000';
+    const lb=dayStatus==='today'?'今日':'明日';
+    return '<span style="background:'+bg+';color:'+fg+';display:inline-block;font-size:10px;font-weight:900;border-radius:3px;padding:1px 5px;line-height:1.5">'+lb+'</span>';
+  })();
+
+  // 查比分 (透過 EN_TO_ZH 反查英文名 → MATCH_SCORES)
+  let homeSc=null, awaySc=null;
+  if(!m.home.tbd && !m.away.tbd){
+    let homeEn=null, awayEn=null;
+    Object.keys(EN_TO_ZH).forEach(en=>{
+      if(EN_TO_ZH[en]===m.home.name) homeEn=en;
+      if(EN_TO_ZH[en]===m.away.name) awayEn=en;
+    });
+    if(homeEn&&awayEn){
+      const sc=MATCH_SCORES[homeEn+'|'+awayEn]||MATCH_SCORES[awayEn+'|'+homeEn];
+      if(sc){
+        const fl=!!MATCH_SCORES[awayEn+'|'+homeEn]&&!MATCH_SCORES[homeEn+'|'+awayEn];
+        homeSc=fl?sc.s2:sc.s1; awaySc=fl?sc.s1:sc.s2;
+      }
+    }
+  }
+  const hasScore=homeSc!==null&&awaySc!==null;
+  const homeWin=hasScore&&homeSc>awaySc;
+  const awayWin=hasScore&&awaySc>homeSc;
+
+  const mkScoreBadge=(sc,win)=>{
+    if(!hasScore) return '';
+    const col=win?'#111827':'#94a3b8';
+    const fw=win?'900':'600';
+    return `<span style="margin-left:auto;flex-shrink:0"><span style="display:inline-block;min-width:16px;text-align:center;font-size:13px;font-weight:${fw};color:${col};${win?'border-bottom:2.5px solid #16a34a;padding-bottom:1px':''}">${sc}</span></span>`;
+  };
+  const mk=(t,sc,win)=>t.tbd
     ?`<div class="bkt-tbd">${t.name}</div>`
-    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>`;
+    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>${mkScoreBadge(sc,win)}`;
   el.innerHTML=`
     <div class="bkt-card-hdr">
       <span class="bkt-mid">${m.id||''}</span>
+      ${badgeHtml}
       <span class="bkt-time">${m.date.split(' ')[0]} ${m.time}</span>
     </div>
-    <div class="bkt-team">${mk(m.home)}</div>
-    <div class="bkt-team">${mk(m.away)}</div>
+    <div class="bkt-team">${mk(m.home,homeSc,homeWin)}</div>
+    <div class="bkt-team">${mk(m.away,awaySc,awayWin)}</div>
     <div class="bkt-venue">📍 ${m.venue}</div>`;
   const vm=vMarkers[fullVenue]; const col=vm?vm.col:'#818CF8';
   el.addEventListener('mouseenter',()=>{el.style.outline=`2px solid ${col}`;showHighlight(fullVenue);showVenueInfo(fullVenue);});
@@ -2657,7 +2721,7 @@ function makeBktCard(m){
 // The connector SVG column sits between two card columns and is 32px wide.
 // Its height = left col height.
 
-const CARD_H=90, GAP=20, LABEL_H=26, CONN_W=32;
+const CARD_H=100, GAP=14, LABEL_H=26, CONN_W=32;
 
 function colHeight(n){ return LABEL_H + n*(CARD_H+GAP); }
 // Y-centre of card k in a column (absolute within the column)
@@ -2668,28 +2732,6 @@ function cardTop(k){ return LABEL_H + k*(CARD_H+GAP); }
 function rightCardTop(ia,ib){ return (cardMid(ia)+cardMid(ib))/2 - CARD_H/2; }
 
 // Build one card element
-function makeBktCard(m){
-  const cls=m.isFinal?'bkt-card final-card':m.isThird?'bkt-card third-card':'bkt-card';
-  const fullVenue=VENUE_SHORT_MAP[m.venue]||m.venue;
-  const el=document.createElement('div');
-  el.className=cls; el.dataset.venue=fullVenue;
-  const mk=t=>t.tbd
-    ?`<div class="bkt-tbd">${t.name}</div>`
-    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>`;
-  el.innerHTML=`
-    <div class="bkt-card-hdr">
-      <span class="bkt-mid">${m.id||''}</span>
-      <span class="bkt-time">${m.date.split(' ')[0]} ${m.time}</span>
-    </div>
-    <div class="bkt-team">${mk(m.home)}</div>
-    <div class="bkt-team">${mk(m.away)}</div>
-    <div class="bkt-venue">📍 ${m.venue}</div>`;
-  const vm=vMarkers[fullVenue]; const col=vm?vm.col:'#818CF8';
-  el.addEventListener('mouseenter',()=>{el.style.outline=`2px solid ${col}`;showHighlight(fullVenue);showVenueInfo(fullVenue);});
-  el.addEventListener('mouseleave',()=>{el.style.outline='none';hideHighlight();});
-  return el;
-}
-
 // Build a column with absolute-positioned cards
 function buildCol(matches, label, labelCls, topFn){
   const col=document.createElement('div');
@@ -2704,6 +2746,22 @@ function buildCol(matches, label, labelCls, topFn){
     const top=topFn(k);
     const card=makeBktCard(m);
     card.style.cssText=`position:absolute;top:${top}px;left:0;width:136px`;
+    // 今日/明日邊框動畫 via setProperty
+    const ds=getMatchDayStatus(m.date);
+    if(ds==='today'){
+      card.style.setProperty('border','2px solid #ef4444','important');
+      card.style.setProperty('box-shadow','0 0 0 3px rgba(239,68,68,.25)','important');
+    } else if(ds==='tomorrow'){
+      // Use Web Animations API to bypass CSS cascade entirely
+      card.style.setProperty('border','2px solid rgba(251,191,36,.85)','important');
+      setTimeout(()=>{
+        card.animate([
+          {borderColor:'#f59e0b', boxShadow:'0 0 0 0 rgba(251,191,36,.9), inset 0 0 0 0 rgba(251,191,36,0)', background:'#fff'},
+          {borderColor:'#fbbf24', boxShadow:'0 0 0 10px rgba(251,191,36,0), inset 0 0 8px rgba(251,191,36,.15)', background:'#fffbeb'},
+          {borderColor:'#f59e0b', boxShadow:'0 0 0 0 rgba(251,191,36,.9), inset 0 0 0 0 rgba(251,191,36,0)', background:'#fff'}
+        ],{duration:1500, iterations:Infinity, easing:'ease-in-out'});
+      },50);
+    }
     col.appendChild(card);
     cards.push(card);
   });
@@ -2742,8 +2800,7 @@ function buildConn(pairs, leftTopFn, rightTopFn, colH){
 // ── Main render ──────────────────────────────────────────────────────────────
 function renderKO(){
   const el=document.getElementById('koContent');
-  if(el.dataset.built) return;
-  el.dataset.built='1';
+  el.innerHTML='';
 
   const r32m=KO_ROUNDS[0].matches;
   const r16m=KO_ROUNDS[1].matches;
@@ -2800,6 +2857,14 @@ function renderKO(){
   tpLbl.textContent='Third-place';
   const tpCard=makeBktCard(thirdm[0]);
   tpCard.style.cssText=`position:absolute;top:${LABEL_H+CARD_H+40+LABEL_H+4}px;left:0;width:136px`;
+  {const ds=getMatchDayStatus(thirdm[0].date);
+   if(ds==='today'){tpCard.style.setProperty('border','2px solid #ef4444','important');tpCard.style.setProperty('box-shadow','0 0 0 3px rgba(239,68,68,.25)','important');}
+   else if(ds==='tomorrow'){tpCard.style.setProperty('border','2px solid rgba(251,191,36,.85)','important');
+    setTimeout(()=>tpCard.animate([
+      {borderColor:'#f59e0b',boxShadow:'0 0 0 0 rgba(251,191,36,.9), inset 0 0 0 0 rgba(251,191,36,0)',background:'#fff'},
+      {borderColor:'#fbbf24',boxShadow:'0 0 0 10px rgba(251,191,36,0), inset 0 0 8px rgba(251,191,36,.15)',background:'#fffbeb'},
+      {borderColor:'#f59e0b',boxShadow:'0 0 0 0 rgba(251,191,36,.9), inset 0 0 0 0 rgba(251,191,36,0)',background:'#fff'}
+    ],{duration:1500,iterations:Infinity,easing:'ease-in-out'}),50);}}
   c4.appendChild(tpLbl);
   c4.appendChild(tpCard);
 
