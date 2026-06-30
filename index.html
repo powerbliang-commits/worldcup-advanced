@@ -517,6 +517,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 const WC_STORAGE_KEY = 'wc2026_standings';
 const WC_UPDATE_KEY  = 'wc2026_last_update';
 const MATCH_SCORES   = {};
+// KO 比賽比分備份（Worker 未取得時頂上；Worker 有數據時會覆蓋）
+const KO_SCORE_BACKUP = {
+  'South Africa|Canada':{s1:0,s2:1},
+  'Brazil|Japan':{s1:2,s2:1},
+  'Germany|Paraguay':{s1:1,s2:1,pk:'away',pks1:3,pks2:4},  // PK: 巴拉圭(away) 4-3 晉級
+};
+Object.assign(MATCH_SCORES, KO_SCORE_BACKUP);
 const CONFIRMED_ELIMINATED = new Set(); // 由積分榜邏輯動態填入
 const CONFIRMED_T3_THROUGH = new Set(); // 第3名跨組確定晉級的隊伍
 const CONFIRMED_T3_OUT    = new Set(); // 第3名跨組確定淘汰的隊伍
@@ -2371,7 +2378,14 @@ function getMatchWinner(matchId){
   var flipped = !!MATCH_SCORES[awayEn+'|'+homeEn] && !MATCH_SCORES[homeEn+'|'+awayEn];
   var s1 = flipped ? score.s2 : score.s1;
   var s2 = flipped ? score.s1 : score.s2;
-  if(s1===s2) return null; // 平局（淘汰賽不應有）
+  if(s1===s2){
+    // PK 決勝：pk:'home' 或 pk:'away'
+    if(!score.pk) return null;
+    var pkWinHome = (score.pk==='home' && !flipped) || (score.pk==='away' && flipped);
+    return pkWinHome
+      ? {name:homeZh, code:match.home.code, isPK:true}
+      : {name:awayZh, code:match.away.code, isPK:true};
+  }
   var winnerZh = s1>s2 ? homeZh : awayZh;
   var winnerCode = s1>s2 ? match.home.code : match.away.code;
   return {name:winnerZh, code:winnerCode};
@@ -2434,7 +2448,7 @@ const KO_ROUNDS=[
   {label:'32強 Round of 32',shortLabel:'Round of 32',cols:2,matches:[
     {id:'M73',date:'6/29 週一',time:'03:00',home:{name:'南非',code:'za',tbd:false},away:{name:'加拿大',code:'ca',tbd:false},venue:'SoFi Stadium'},
     {id:'M75',date:'6/30 週二',time:'09:00',home:{name:'荷蘭',code:'nl',tbd:false},away:{name:'摩洛哥',code:'ma',tbd:false},venue:'Estadio BBVA'},
-    {id:'M74',date:'6/30 週二',time:'04:30',home:tbd('E1'),away:{name:'巴拉圭',code:'py',tbd:false},venue:'Gillette Stadium'},
+    {id:'M74',date:'6/30 週二',time:'04:30',home:{name:'德國',code:'de',tbd:false},away:{name:'巴拉圭',code:'py',tbd:false},venue:'Gillette Stadium'},
     {id:'M77',date:'7/01 週三',time:'05:00',home:{name:'法國',code:'fr',tbd:false},away:{name:'瑞典',code:'se',tbd:false},venue:'MetLife Stadium'},
     {id:'M76',date:'6/30 週二',time:'01:00',home:{name:'巴西',code:'br',tbd:false},away:{name:'日本',code:'jp',tbd:false},venue:'NRG Stadium'},
     {id:'M78',date:'7/01 週三',time:'01:00',home:{name:'象牙海岸',code:'ci',tbd:false},away:{name:'挪威',code:'no',tbd:false},venue:'AT&T Stadium'},
@@ -2667,7 +2681,7 @@ function makeBktCard(m){
   })();
 
   // 查比分 (透過 EN_TO_ZH 反查英文名 → MATCH_SCORES)
-  let homeSc=null, awaySc=null;
+  let homeSc=null, awaySc=null, pkWinner=null, homePkSc=null, awayPkSc=null;
   if(!m.home.tbd && !m.away.tbd){
     let homeEn=null, awayEn=null;
     Object.keys(EN_TO_ZH).forEach(en=>{
@@ -2679,30 +2693,46 @@ function makeBktCard(m){
       if(sc){
         const fl=!!MATCH_SCORES[awayEn+'|'+homeEn]&&!MATCH_SCORES[homeEn+'|'+awayEn];
         homeSc=fl?sc.s2:sc.s1; awaySc=fl?sc.s1:sc.s2;
+        // PK 判定
+        if(sc.pk){
+          const pkWinHome=(sc.pk==='home'&&!fl)||(sc.pk==='away'&&fl);
+          pkWinner=pkWinHome?'home':'away';
+          // PK 比數
+          if(sc.pks1!==undefined){
+            homePkSc=fl?sc.pks2:sc.pks1; awayPkSc=fl?sc.pks1:sc.pks2;
+          }
+        }
       }
     }
   }
   const hasScore=homeSc!==null&&awaySc!==null;
-  const homeWin=hasScore&&homeSc>awaySc;
-  const awayWin=hasScore&&awaySc>homeSc;
+  const isPK=hasScore&&homeSc===awaySc&&pkWinner!==null;
+  const homeWin=hasScore&&(homeSc>awaySc||(isPK&&pkWinner==='home'));
+  const awayWin=hasScore&&(awaySc>homeSc||(isPK&&pkWinner==='away'));
+  // 已完成歷史賽事：有比分且非今日/明日 → 記錄在 data attribute，buildCol 再套色
+  if(hasScore && !dayStatus) el.dataset.completed='1';
 
-  const mkScoreBadge=(sc,win)=>{
+  const mkScoreBadge=(sc,win,pkSc)=>{
     if(!hasScore) return '';
     const col=win?'#111827':'#94a3b8';
     const fw=win?'900':'600';
-    return `<span style="margin-left:auto;flex-shrink:0"><span style="display:inline-block;min-width:16px;text-align:center;font-size:13px;font-weight:${fw};color:${col};${win?'border-bottom:2.5px solid #16a34a;padding-bottom:1px':''}">${sc}</span></span>`;
+    const underline=win?'border-bottom:2.5px solid #16a34a;padding-bottom:1px':'';
+    // PK 欄：所有有比分的卡片都預留固定寬度，保持比數位置一致
+    const pkContent=(isPK&&pkSc!==null)?'('+pkSc+')':'';
+    const pkCol=`<span style="display:inline-block;min-width:16px;text-align:left;font-size:10px;color:${win?'#374151':'#9ca3af'};font-weight:${win?'700':'500'};padding-left:2px">${pkContent}</span>`;
+    return `<span style="margin-left:auto;flex-shrink:0;display:flex;align-items:center"><span style="display:inline-block;min-width:18px;text-align:center;font-size:13px;font-weight:${fw};color:${col};${underline}">${sc}</span>${pkCol}</span>`;
   };
-  const mk=(t,sc,win)=>t.tbd
+  const mk=(t,sc,win,pkSc)=>t.tbd
     ?`<div class="bkt-tbd">${t.name}</div>`
-    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>${mkScoreBadge(sc,win)}`;
+    :`<img class="bkt-flag" src="https://flagcdn.com/32x24/${t.code}.png" alt="" onerror="this.style.display='none'"><div class="bkt-name">${t.name}</div>${mkScoreBadge(sc,win,pkSc)}`;
   el.innerHTML=`
     <div class="bkt-card-hdr">
       <span class="bkt-mid">${m.id||''}</span>
       ${badgeHtml}
       <span class="bkt-time">${m.date.split(' ')[0]} ${m.time}</span>
     </div>
-    <div class="bkt-team">${mk(m.home,homeSc,homeWin)}</div>
-    <div class="bkt-team">${mk(m.away,awaySc,awayWin)}</div>
+    <div class="bkt-team">${mk(m.home,homeSc,homeWin,homePkSc)}</div>
+    <div class="bkt-team">${mk(m.away,awaySc,awayWin,awayPkSc)}</div>
     <div class="bkt-venue">📍 ${m.venue}</div>`;
   const vm=vMarkers[fullVenue]; const col=vm?vm.col:'#818CF8';
   el.addEventListener('mouseenter',()=>{el.style.outline=`2px solid ${col}`;showHighlight(fullVenue);showVenueInfo(fullVenue);});
@@ -2746,6 +2776,24 @@ function buildCol(matches, label, labelCls, topFn){
     const top=topFn(k);
     const card=makeBktCard(m);
     card.style.cssText=`position:absolute;top:${top}px;left:0;width:136px`;
+    // 已完成歷史賽事 - 深色撞色設計
+    if(card.dataset.completed){
+      card.style.setProperty('background','#bfdbfe','important');
+      card.style.setProperty('border-color','#60a5fa','important');
+      const hdr=card.querySelector('.bkt-card-hdr');
+      if(hdr){hdr.style.background='#93c5fd';hdr.style.borderBottomColor='#60a5fa';}
+      card.querySelectorAll('.bkt-name').forEach(el=>el.style.color='#0f172a');
+      card.querySelectorAll('.bkt-mid').forEach(el=>el.style.color='#0f172a');
+      card.querySelectorAll('.bkt-time').forEach(el=>el.style.color='#1e293b');
+      card.querySelectorAll('.bkt-venue').forEach(el=>el.style.color='#334155');
+      card.querySelectorAll('.bkt-team+.bkt-team').forEach(el=>el.style.borderTopColor='#60a5fa');
+      // 調整比分顏色在深色背景下可讀
+      card.querySelectorAll('.bkt-team span span').forEach(el=>{
+        const isWinner=el.style.fontWeight==='900';
+        el.style.color=isWinner?'#0f172a':'#475569';
+        if(isWinner) el.style.borderBottomColor='#16a34a';
+      });
+    }
     // 今日/明日邊框動畫 via setProperty
     const ds=getMatchDayStatus(m.date);
     if(ds==='today'){
@@ -2938,6 +2986,14 @@ function applyStandingsData(data){
   // 儲存比賽比數
   if(data.results){
     Object.assign(MATCH_SCORES, data.results);
+    // Worker 沒有 pks1/pks2，從 KO_SCORE_BACKUP 補回 PK 比數
+    Object.keys(KO_SCORE_BACKUP).forEach(function(k){
+      if(KO_SCORE_BACKUP[k].pks1!==undefined && MATCH_SCORES[k]){
+        MATCH_SCORES[k].pks1=KO_SCORE_BACKUP[k].pks1;
+        MATCH_SCORES[k].pks2=KO_SCORE_BACKUP[k].pks2;
+        if(!MATCH_SCORES[k].pk) MATCH_SCORES[k].pk=KO_SCORE_BACKUP[k].pk;
+      }
+    });
   }
   // standings 和 results 都更新後，重算出局/晉級並更新 Bracket
   buildConfirmedEliminated();
