@@ -455,7 +455,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <div id="updateBadgeBar" style="display:none;padding:5px 14px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;align-items:center;gap:12px">
     <span id="updateBadge" style="font-size:11px;color:#94a3b8;font-weight:600;flex:1"></span>
-    <button onclick="fetchStandingsFromAPI()" style="padding:4px 12px;background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4);border-radius:6px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔄 更新戰績</button>
+    <button onclick="fetchStandingsFromAPI(true)" style="padding:4px 12px;background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4);border-radius:6px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔄 更新戰績</button>
   </div>
   <!-- Group stage panel -->
   <div id="panelGroup" class="panel-group-desktop" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
@@ -523,6 +523,8 @@ const KO_SCORE_BACKUP = {
   'Brazil|Japan':{s1:2,s2:1},
   'Germany|Paraguay':{s1:1,s2:1,pk:'away',pks1:3,pks2:4},  // PK: 巴拉圭(away) 4-3 晉級
   'Netherlands|Morocco':{s1:1,s2:1,pk:'away',pks1:2,pks2:3},  // PK: 摩洛哥(away) 3-2 晉級
+  'France|Sweden':{s1:3,s2:0},
+  'Ivory Coast|Norway':{s1:1,s2:2},
 };
 Object.assign(MATCH_SCORES, KO_SCORE_BACKUP);
 const CONFIRMED_ELIMINATED = new Set(); // 由積分榜邏輯動態填入
@@ -3006,13 +3008,14 @@ function applyStandingsData(data){
 }
 
 // ── 呼叫 Cloudflare Worker 抓最新積分 ─────────────────────────────────────────
-async function fetchStandingsFromAPI(){
+async function fetchStandingsFromAPI(forceRefresh=false){
   const badge = document.getElementById('updateBadge');
   if(badge){ badge.textContent='更新中...'; badge.style.display='inline-block'; badge.style.color='#fbbf24'; }
   const koBadge=document.getElementById('koBadge'); if(koBadge) koBadge.textContent='更新中...';
 
   try {
-    const res = await fetch('https://cool-rice-7f3d.power-b-liang.workers.dev/');
+    const workerUrl='https://cool-rice-7f3d.power-b-liang.workers.dev/'+(forceRefresh?'?refresh=1':'');
+    const res = await fetch(workerUrl, {cache:'no-store'});
     if(!res.ok) throw new Error('Worker 連線失敗: ' + res.status);
 
     const parsed = await res.json();
